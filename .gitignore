@@ -1,0 +1,19 @@
+# PlatformIO
+firmware/.pio/
+firmware/.vscode/
+
+# Python
+__pycache__/
+*.pyc
+server/.venv/
+.venv/
+
+# Secrets — never commit WiFi or API credentials
+firmware/include/secrets.h
+.env
+
+# macOS
+.DS_Store
+
+# Mic debug recordings
+server/debug/
