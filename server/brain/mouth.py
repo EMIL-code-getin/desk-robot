@@ -2,13 +2,15 @@
 
 Two voices:
   * Fish Audio (Rocky's real voice) when TTS_VOICE_ID and FISH_AUDIO_API_KEY
-    are set. Plain HTTPS POST; we ask for WAV so the format is self-describing,
-    then convert to 16 kHz mono PCM.
+    are set. Plain HTTPS POST asking for raw 16 kHz PCM. The response body
+    streams, so the first audio arrives ~0.3 s in, long before the sentence
+    is finished, and is passed straight on to the speaker.
   * macOS `say` as the fallback so the loop is audible before that's set up.
 
-`synthesize()` returns 16 kHz mono s16le PCM — the exact format the robot's
-speaker expects (docs/protocol.md) — so the same bytes play on the Mac now
-and stream to the robot in M3. `speak()` plays them on the Mac.
+`stream(text)` yields 16 kHz mono s16le PCM chunks — the exact format the
+robot's speaker expects (docs/protocol.md) — as they're produced.
+`synthesize()` is the same joined into one buffer; `play()` plays a buffer
+on the Mac.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ import tempfile
 import time
 import urllib.request
 import wave
+from collections.abc import Iterator
 
 import certifi
 
@@ -54,13 +57,15 @@ def clean_for_tts(text: str) -> str:
     return text
 
 
-def _synthesize_fish(text: str) -> bytes:
+def _fish_stream(text: str) -> Iterator[bytes]:
+    """Raw 16 kHz PCM from Fish Audio, yielded as the server produces it."""
     body = json.dumps(
         {
             "text": text,
             "reference_id": config.TTS_VOICE_ID,
-            "format": "wav",
+            "format": "pcm",          # headerless s16le at sample_rate: nothing to parse
             "sample_rate": SAMPLE_RATE,
+            "latency": "balanced",    # a little faster to the first byte than "normal"
             "temperature": config.TTS_TEMPERATURE,
             "top_p": config.TTS_TOP_P,
         }
@@ -78,7 +83,25 @@ def _synthesize_fish(text: str) -> bytes:
     # certifi's bundle (already installed with the openai package) does.
     ctx = ssl.create_default_context(cafile=certifi.where())
     with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
-        return _wav_to_pcm16k(resp.read())
+        carry = b""  # a chunk boundary can split a 16-bit sample in half
+        while chunk := resp.read(4096):
+            chunk = carry + chunk
+            if len(chunk) % 2:
+                chunk, carry = chunk[:-1], chunk[-1:]
+            else:
+                carry = b""
+            if chunk:
+                yield apply_gain(chunk, config.TTS_GAIN)
+
+
+def apply_gain(pcm: bytes, gain: float) -> bytes:
+    """Gain with a soft limiter. Streaming audio can't be normalized to its
+    peak (the peak isn't known until the end), so quiet lines get the full
+    gain while loud peaks are eased into full scale (tanh) instead of clipped."""
+    if gain == 1.0:
+        return pcm
+    samples = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+    return (np.tanh(samples * gain) * 32767).astype(np.int16).tobytes()
 
 
 def _wav_to_pcm16k(wav_bytes: bytes) -> bytes:
@@ -123,22 +146,46 @@ def _synthesize_say(text: str) -> bytes:
     return wav[44:]  # skip the 44-byte WAV header; the rest is raw PCM
 
 
-def synthesize(text: str) -> bytes:
-    """Rocky's reply as 16 kHz mono signed 16-bit little-endian PCM."""
+def stream(text: str) -> Iterator[bytes]:
+    """Rocky's words as 16 kHz mono s16le PCM chunks, yielded as they're made.
+    Fish Audio when it's set up and reachable, else the Mac's own voice (all
+    at once). A saved copy goes to debug/tts/ when DEBUG_SAVE_TTS is on."""
     text = clean_for_tts(text)
     if not text:
-        return b""
-    pcm = None
-    if fish_available():
-        try:
-            pcm = normalize(_synthesize_fish(text))
-        except Exception as e:  # network, auth, bad voice id... still speak
-            print(f"(fish audio failed, using Mac voice: {e})")
-    if pcm is None:
-        pcm = normalize(_synthesize_say(text))
-    if config.DEBUG_SAVE_TTS:
-        _save_clip(pcm, text)
-    return pcm
+        return
+    parts: list[bytes] = []
+    complete = False
+    try:
+        chunks: Iterator[bytes] | None = None
+        first = b""
+        if fish_available():
+            try:
+                chunks = _fish_stream(text)
+                first = next(chunks, b"")
+            except Exception as e:  # network, auth, bad voice id... still speak
+                print(f"(fish audio failed, using Mac voice: {e})")
+                chunks = None
+        if chunks is None:
+            first = normalize(_synthesize_say(text))
+        if first:
+            parts.append(first)
+            yield first
+        if chunks is not None:
+            try:
+                for chunk in chunks:
+                    parts.append(chunk)
+                    yield chunk
+            except Exception as e:  # dropped mid-stream: say what we have
+                print(f"(fish audio stream cut short: {e})")
+        complete = True
+    finally:
+        if complete and parts and config.DEBUG_SAVE_TTS:
+            _save_clip(b"".join(parts), text)
+
+
+def synthesize(text: str) -> bytes:
+    """Rocky's reply as one 16 kHz mono signed 16-bit little-endian PCM buffer."""
+    return b"".join(stream(text))
 
 
 def _save_clip(pcm: bytes, text: str) -> None:
@@ -157,14 +204,13 @@ def _save_clip(pcm: bytes, text: str) -> None:
             for ext in (".wav", ".txt"):
                 try: os.unlink(os.path.join(d, f[:-4] + ext))
                 except OSError: pass
-        print(f"  (clip saved: debug/tts/{stamp}.wav)")
     except OSError:
         pass
 
 
 def normalize(pcm: bytes, peak: float = 0.95) -> bytes:
-    """Scale so the loudest sample hits `peak` of full scale. TTS output is
-    often conservative; the little speaker wants all the range it can get."""
+    """Scale so the loudest sample hits `peak` of full scale. Used for the
+    Mac fallback voice, which arrives all at once."""
     samples = np.frombuffer(pcm, dtype=np.int16).astype(np.float32)
     top = float(np.abs(samples).max()) if len(samples) else 0.0
     if top < 1:
@@ -178,6 +224,8 @@ def play(pcm: bytes) -> None:
     Uses macOS's own player rather than sounddevice: opening an output stream
     while the mic stream is running trips CoreAudio ("cannot do in current
     context") and can hang. afplay is a separate process, so it can't."""
+    if not pcm:
+        return
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         path = f.name
     try:

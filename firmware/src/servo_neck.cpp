@@ -35,6 +35,14 @@ void ServoNeck::writeAngle(float deg) {
   servo_.writeMicroseconds(constrain(us, 500, 2400));
 }
 
+void ServoNeck::setRaw(float deg) {
+  deg = constrain(deg, -60.0f, 60.0f);
+  attachIfNeeded();
+  currentDeg_ = targetDeg_ = deg;
+  settledSinceMs_ = 0;
+  writeAngle(deg);
+}
+
 void ServoNeck::setTarget(float deg) {
   targetDeg_ = constrain(deg, minDeg_, maxDeg_);
   settledSinceMs_ = 0;

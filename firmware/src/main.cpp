@@ -39,6 +39,16 @@ volatile bool speakDonePending = false;  // set by the speaker task, sent from l
 uint32_t lastFrameMs = 0;
 uint32_t nextStateMs = 0;
 bool demoMode = true;  // cycles emotions on its own; off while the brain is connected
+bool brainConnected = false;
+bool glanceWanted = true;  // the brain's `glance on|off` (off while it holds a pose or tracks a face)
+
+// Idle glances only while Rocky is awake and his brain is connected. Asleep,
+// or with no server running, the head stays still.
+void applyGlances() {
+  bool on = brainConnected && !face.asleep() && glanceWanted;
+  panNeck.setIdleGlances(on);
+  tiltNeck.setIdleGlances(on);
+}
 uint32_t nextDemoEmotionMs = 0;
 uint8_t demoEmotionIdx = 0;
 
@@ -48,10 +58,11 @@ void printHelp() {
   Serial.println(F("  pan <deg>    turn head, -60..60 (0 = center)"));
   Serial.println(F("  tilt <deg>   nod head, -30 (down)..40 (up), 0 = level"));
   Serial.println(F("  center       head to center on both axes"));
+  Serial.println(F("  raw pan|tilt <deg>  calibration move that ignores the limits (watch it!)"));
   Serial.println(F("  blink        blink now"));
   Serial.println(F("  sleep on|off eyes shut, breathing, Z's"));
-  Serial.println(F("  demo on|off  idle life: auto blinks, glances, emotion changes"));
-  Serial.println(F("  glance on|off  idle head glances only (off while tracking a face)"));
+  Serial.println(F("  demo on|off  idle life: auto blinks and emotion changes"));
+  Serial.println(F("  glance on|off  allow idle head glances (only happen while the brain is connected and he is awake)"));
   Serial.println(F("  volume <0-1> speaker volume"));
   Serial.println(F("  beep         play a test tone through the speaker"));
   Serial.println(F("  mic on|off   stream the microphone to the brain"));
@@ -88,6 +99,15 @@ void handleCommand(String line) {
   } else if (cmd == "tilt") {
     tiltNeck.setTarget(arg.toFloat());
     Serial.printf("tilt -> %.0f deg\n", tiltNeck.target());
+  } else if (cmd == "raw") {
+    // raw pan|tilt <deg>: calibration, ignores the limits. Watch the mechanism!
+    int sp = arg.indexOf(' ');
+    String axis = sp < 0 ? arg : arg.substring(0, sp);
+    float deg = sp < 0 ? 0 : arg.substring(sp + 1).toFloat();
+    if (axis == "tilt") tiltNeck.setRaw(deg);
+    else if (axis == "pan") panNeck.setRaw(deg);
+    else { Serial.println(F("usage: raw pan|tilt <deg>")); return; }
+    Serial.printf("raw %s -> %.0f deg (limits ignored)\n", axis.c_str(), deg);
   } else if (cmd == "center") {
     panNeck.setTarget(0);
     tiltNeck.setTarget(0);
@@ -96,6 +116,7 @@ void handleCommand(String line) {
     face.blink();
   } else if (cmd == "sleep") {
     face.setAsleep(arg == "on");
+    applyGlances();
     Serial.printf("sleep %s\n", face.asleep() ? "on" : "off");
   } else if (cmd == "speak_begin") {
     speaker.beginSpeech(static_cast<size_t>(arg.toInt()));
@@ -144,14 +165,12 @@ void handleCommand(String line) {
   } else if (cmd == "temp") {
     Serial.printf("chip %.1f C\n", temperatureRead());
   } else if (cmd == "glance") {
-    panNeck.setIdleGlances(arg == "on");
-    tiltNeck.setIdleGlances(arg == "on");
-    Serial.printf("glance %s\n", arg == "on" ? "on" : "off");
+    glanceWanted = (arg == "on");
+    applyGlances();
+    Serial.printf("glance %s\n", glanceWanted ? "on" : "off");
   } else if (cmd == "demo") {
     demoMode = (arg == "on");
     face.setIdle(demoMode);
-    panNeck.setIdleGlances(demoMode);
-    tiltNeck.setIdleGlances(demoMode);
     Serial.printf("demo %s\n", demoMode ? "on" : "off");
   } else {
     Serial.println(F("unknown command — type `help`"));
@@ -182,8 +201,7 @@ void setup() {
 
   demoMode = true;
   face.setIdle(true);
-  panNeck.setIdleGlances(true);
-  tiltNeck.setIdleGlances(true);
+  applyGlances();  // off: no brain yet
   nextDemoEmotionMs = millis() + 8000;
 
   Serial.println(F("\ndesk-robot v0.3.0 — hello!"));
@@ -198,12 +216,14 @@ void setup() {
              [](const String& cmd) { handleCommand(cmd); },
              [](bool connected) {
                // The brain picks emotions while it's connected; the demo
-               // cycle takes over again if it goes away. Blinks and idle
-               // glances stay on either way.
+               // cycle takes over again if it goes away. Blinks stay on
+               // either way; idle glances only while connected and awake.
+               brainConnected = connected;
                demoMode = !connected;
                if (connected) {
                  face.setEmotion(Emotion::Happy);
                }
+               applyGlances();
              });
 #else
   Serial.println(F("no include/secrets.h — USB-only mode (see secrets.h.example)"));

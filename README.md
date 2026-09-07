@@ -81,11 +81,13 @@ joins WiFi and takes orders from Rocky's brain on the Mac.
    tilt 20              nod the head (degrees, -30 down..40 up, 0 = level)
    blink                manual blink
    demo off             stop the idle demo behavior
+   raw tilt 20          calibration move that ignores the limits (watch it!)
    ```
 
-On boot the robot runs an idle "alive" behavior: blinking, glancing around,
-and occasionally changing expression, so you can see everything working
-without typing anything.
+On boot the robot runs an idle "alive" behavior: blinking and occasionally
+changing expression, so you can see everything working without typing
+anything. Idle head glances only happen while the brain is connected and
+Rocky is awake; asleep, or with no server running, the head stays still.
 
 ## Brain server quickstart
 
@@ -101,11 +103,26 @@ python -m brain.main
 The server listens through the robot's microphone when the robot is
 connected, and the Mac's microphone otherwise. Rocky's replies play through
 the robot's speaker when it's connected, else the Mac's. Say
-**"hey Rocky"** and then your question; Rocky answers out loud through the
-Mac's speaker. Once awake he keeps listening without his name; after a
-minute with nothing from you he dozes off (sleepy face). Say **"Rocky,
-sleep"** (or "goodnight") to put him down right away. (macOS will ask once to
-let your terminal use the microphone.)
+**"hey Rocky"** and then your question; Rocky answers out loud. Once awake
+he keeps listening without his name; after a minute with nothing from you
+he dozes off (sleepy face). Say **"Rocky, sleep"** (or "goodnight") to put
+him down right away. (macOS will ask once to let your terminal use the
+microphone.)
+
+Conversation is meant to feel natural rather than push-to-talk:
+
+- He decides you're done the way a person does. A small model
+  (Smart Turn, in `server/brain/turn.py`) listens to how your sentence
+  ends; if you sound finished he answers about a third of a second later,
+  and if you trail off mid-thought he waits (up to `TURN_MAX_SILENCE`).
+- His reply streams: the first sentence is spoken while the rest is still
+  being written, so the first word arrives a couple of seconds after yours.
+- If you start talking again before he speaks, he drops the reply, hears
+  the rest, and answers the whole thing once. Once he *is* speaking he
+  finishes the line — his mic is muted while his own voice plays (no echo
+  cancellation yet).
+
+Every reply prints a `timing` line so you can see where the time goes.
 
 You can also type in the server console:
 
@@ -119,9 +136,10 @@ pan 20                         push a head turn (once M2 lands)
 
 None of this needs the robot hardware, so you can tune the personality in
 `server/brain/personality.py` right now. Listening knobs (which mic, how
-loud counts as speech, the speech model) are in `server/brain/config.py`.
-Speech-to-text runs locally on the Mac with faster-whisper; the first run
-downloads a ~150 MB model.
+eagerly he decides you're finished, the speech model) are in
+`server/brain/config.py`. Speech-to-text and turn detection run locally on
+the Mac (faster-whisper, Silero VAD, Smart Turn); the first run downloads
+~160 MB of models.
 
 The model is an OpenRouter model id in `server/brain/config.py`
 (`anthropic/claude-haiku-4.5` by default, a few dollars a month of chatting).

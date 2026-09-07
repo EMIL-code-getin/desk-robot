@@ -16,6 +16,9 @@ class ServoNeck {
              float glanceRangeDeg = 25.0f, bool invert = false);
 
   void setTarget(float deg);
+  // Calibration only: drive straight to a head angle, ignoring the limits.
+  // Use it to find which way the servo turns before trusting the limits.
+  void setRaw(float deg);
   float current() const { return currentDeg_; }
   float target() const { return targetDeg_; }
 

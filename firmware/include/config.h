@@ -35,7 +35,8 @@ constexpr float TILT_MIN_DEG = -30.0f;  // look-down limit
 constexpr float TILT_MAX_DEG = 0.0f;    // look-up limit (eye level is the mechanical stop)
 constexpr float TILT_MAX_SPEED = 120.0f;
 constexpr float TILT_TRIM_DEG = 0.0f;   // tweak so the head sits level at 0
-constexpr bool TILT_INVERT = false;     // flip if up/down come out reversed
+constexpr bool TILT_INVERT = true;      // verified with the camera 2026-09-06: with false,
+                                        // "down" drove the head UP into its stop
 
 // Watch the mechanism the first time tilt moves: if the bracket strains at
 // either end of travel, pull TILT_MIN/MAX in until it stops.

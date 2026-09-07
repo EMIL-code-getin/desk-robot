@@ -1,5 +1,6 @@
 """Thinking: sends a question (and the newest camera frame) to the language
-model via OpenRouter and returns what Rocky should say and feel.
+model via OpenRouter and hands back what Rocky should say and feel, one
+sentence at a time as the model writes it.
 
 OpenRouter (openrouter.ai) fronts many models behind one key using the
 OpenAI-style chat API, so the model is just a string in config.py.
@@ -16,7 +17,8 @@ import base64
 import json
 import os
 import re
-from collections.abc import Callable
+import threading
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
 import openai
@@ -25,14 +27,9 @@ from . import config
 from .personality import SYSTEM_PROMPT
 
 _EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*", re.S)
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
-
-
-def limit_sentences(text: str, n: int) -> str:
-    """Keep the first n sentences. A trailing fragment with no end mark counts
-    as a sentence too."""
-    parts = [p for p in _SENTENCE_END.split(text.strip()) if p]
-    return " ".join(parts[:n]) if n > 0 else text
+# A sentence ends at . ! or ? followed by a space — but not at an ellipsis:
+# "just... clear answer." is one sentence, not two.
+_SENTENCE_END = re.compile(r"(?<=[!?])\s+|(?<=[^.]\.)\s+")
 
 # An action returns (text for the model, optional fresh camera JPEG).
 Action = Callable[[dict], tuple[str, bytes | None]]
@@ -45,9 +42,11 @@ TOOLS = [
             "description": (
                 "Move your head to look somewhere. Use it whenever you are asked to "
                 "look left/right/down/up/around, or need to see something outside "
-                "the current picture. You get a fresh camera image afterwards; "
-                "describe only what that image shows. Up is as high as 'level': "
-                "your neck cannot tilt above eye level."
+                "the current picture. Always call it when asked, even if you think "
+                "you are already there: the result tells you where your head really "
+                "is and whether it is at a limit. You get a fresh camera image "
+                "afterwards; describe only what that image shows. Up is as high as "
+                "'level': your neck cannot tilt above eye level."
             ),
             "parameters": {
                 "type": "object",
@@ -84,6 +83,10 @@ class Reply:
     emotion: str
 
 
+class Interrupted(Exception):
+    """The human started talking again; drop this reply."""
+
+
 def _image_part(jpeg: bytes) -> dict:
     data = base64.standard_b64encode(jpeg).decode()
     return {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}}
@@ -98,107 +101,234 @@ class RobotBrain:
         )
         self.history: list[dict] = []
         self.actions = actions or {}
+        self.emotion = "neutral"        # emotion of the reply in progress
+        self._inflight: tuple[int, dict] | None = None  # (index, user message) being answered
 
     def ask(self, question: str, jpeg: bytes | None = None) -> Reply:
+        """The whole reply at once. See reply() for the streaming form."""
+        sentences = list(self.reply(question, jpeg))
+        return Reply(" ".join(sentences), self.emotion)
+
+    def reply(
+        self,
+        question: str,
+        jpeg: bytes | None = None,
+        on_emotion: Callable[[str], None] | None = None,
+        cancelled: threading.Event | None = None,
+    ) -> Iterator[str]:
+        """Rocky's reply, one sentence at a time as the model writes it.
+
+        on_emotion(name) is called as soon as the emotion tag at the start of
+        the reply is known — before the first sentence — so the face can
+        change while he's still composing. Set `cancelled`, or close the
+        generator early, and the question is dropped from his memory as if it
+        was never asked.
+        """
         content: list[dict] = [{"type": "text", "text": question}]
         if jpeg is not None:
             content.append(_image_part(jpeg))
-        self.history.append({"role": "user", "content": content})
+        user_msg = {"role": "user", "content": content}
+        self.history.append(user_msg)
         mark = len(self.history) - 1
+        self._inflight = (mark, user_msg)
+        self.emotion = "neutral"
+        spoken: list[str] = []
+        error: tuple[str, str] | None = None
 
+        gen = self._converse(on_emotion, cancelled or threading.Event())
         try:
-            reply = self._converse()
+            for sentence in gen:
+                spoken.append(sentence)
+                yield sentence
+        except (Interrupted, GeneratorExit):
+            gen.close()
+            self._forget(mark, user_msg)
+            raise
         except openai.APIConnectionError:
-            del self.history[mark:]
-            return Reply("Brain cannot reach internet. Bad bad bad.", "sad")
+            error = ("Brain cannot reach internet. Bad bad bad.", "sad")
         except openai.AuthenticationError:
-            del self.history[mark:]
-            return Reply("Brain has no key. Set OPENROUTER_API_KEY, human.", "sad")
+            error = ("Brain has no key. Set OPENROUTER_API_KEY, human.", "sad")
         except openai.APIStatusError as e:
-            del self.history[mark:]
-            return Reply(f"Ow. Brain hurts. API error {e.status_code}.", "sad")
+            error = (f"Ow. Brain hurts. API error {e.status_code}.", "sad")
+        finally:
+            gen.close()
 
+        if error is not None:
+            self._forget(mark, user_msg)
+            self.emotion = error[1]
+            if on_emotion is not None:
+                on_emotion(self.emotion)
+            yield error[0]
+            return
+
+        if spoken:
+            # Remember what was actually said, so he can't refer back to a
+            # part that got cut.
+            self.history.append({"role": "assistant", "content": f"[{self.emotion}] {' '.join(spoken)}"})
+        self._inflight = None
         self._strip_images()
         self._trim_history()
-        return reply
 
-    def _converse(self) -> Reply:
-        """One question, possibly several model calls if it uses its abilities."""
+    def abandon(self) -> None:
+        """Forget the question being answered right now (the human kept talking)."""
+        if self._inflight is not None:
+            self._forget(*self._inflight)
+
+    def _forget(self, mark: int, user_msg: dict) -> None:
+        # Only cut if that question is still where we left it: a newer one may
+        # already have taken its place.
+        if mark < len(self.history) and self.history[mark] is user_msg:
+            del self.history[mark:]
+        self._inflight = None
+
+    def _converse(self, on_emotion: Callable[[str], None] | None, cancelled: threading.Event) -> Iterator[str]:
+        """One question, possibly several model calls if it uses its abilities.
+        Yields sentences as they complete."""
         nudged = False
         for _ in range(5):
-            response = self.client.chat.completions.create(
+            if cancelled.is_set():
+                raise Interrupted()
+            stream = self.client.chat.completions.create(
                 model=config.MODEL,
                 max_tokens=200,  # backstop; the sentence limit does the real work
                 messages=[{"role": "system", "content": SYSTEM_PROMPT}, *self.history],
                 tools=TOOLS if self.actions else openai.NOT_GIVEN,
+                stream=True,
             )
-            msg = response.choices[0].message
-            calls = msg.tool_calls or []
-            if not calls:
-                raw = (msg.content or "").strip()
-                if not raw and not nudged:
-                    # Some models go quiet right after using an ability. Ask once.
-                    nudged = True
-                    self.history.append({"role": "user", "content": "(Tell your human what you just did, in one short line.)"})
-                    continue
-                if nudged and self.history and self.history[-1].get("role") == "user":
-                    self.history.pop()  # don't keep the nudge in the transcript
-                if not raw:
-                    return Reply("Hmm. Words did not come. Ask again.", "thinking")
-                reply = self._parse(raw)
-                full = reply.text
-                reply.text = limit_sentences(full, config.REPLY_MAX_SENTENCES)
-                if reply.text != full:
-                    print(f"  (trimmed reply to {config.REPLY_MAX_SENTENCES} sentences)")
-                # Remember what was actually said, so he can't refer back to
-                # the part that got cut.
-                self.history.append({"role": "assistant", "content": f"[{reply.emotion}] {reply.text}"})
-                return reply
+            buf = ""                 # text not yet released as a sentence
+            raw: list[str] = []      # everything the model wrote this round
+            tag_decided = False
+            calls: dict[int, dict] = {}
+            spoken = 0
+            try:
+                for chunk in stream:
+                    if cancelled.is_set():
+                        raise Interrupted()
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta
+                    for tc in delta.tool_calls or []:
+                        entry = calls.setdefault(tc.index, {"id": "", "name": "", "arguments": ""})
+                        if tc.id:
+                            entry["id"] = tc.id
+                        if tc.function is not None:
+                            if tc.function.name:
+                                entry["name"] = tc.function.name
+                            if tc.function.arguments:
+                                entry["arguments"] += tc.function.arguments
+                    if not delta.content:
+                        continue
+                    raw.append(delta.content)
+                    buf += delta.content
+                    if not tag_decided:
+                        buf, tag_decided = self._take_emotion_tag(buf, final=False)
+                        if not tag_decided:
+                            continue
+                        if on_emotion is not None:
+                            on_emotion(self.emotion)
+                    parts = _SENTENCE_END.split(buf)
+                    while len(parts) > 1:  # everything but the last piece is a whole sentence
+                        s = parts.pop(0).strip()
+                        if s:
+                            spoken += 1
+                            yield s
+                        if spoken >= config.REPLY_MAX_SENTENCES:
+                            break
+                    buf = parts[-1] if parts else ""
+                    if spoken >= config.REPLY_MAX_SENTENCES:
+                        print(f"  (trimmed reply to {config.REPLY_MAX_SENTENCES} sentences)")
+                        buf = ""
+                        break
+            finally:
+                stream.close()
 
-            # He decided to do something: run it, tell him what happened.
-            self.history.append({
-                "role": "assistant",
-                "content": msg.content or "",
-                "tool_calls": [
-                    {"id": c.id, "type": "function",
-                     "function": {"name": c.function.name, "arguments": c.function.arguments}}
-                    for c in calls
-                ],
-            })
-            fresh: bytes | None = None
-            for c in calls:
-                try:
-                    args = json.loads(c.function.arguments or "{}")
-                except json.JSONDecodeError:
-                    args = {}
-                action = self.actions.get(c.function.name)
-                if action is None:
-                    text = f"unknown ability {c.function.name}"
-                else:
-                    try:
-                        text, img = action(args)
-                    except Exception as e:  # the robot didn't cooperate; say so
-                        text, img = f"could not do that: {e}", None
-                    if img:
-                        fresh = img
-                print(f"  [{c.function.name} {args} -> {text}]")
-                self.history.append({"role": "tool", "tool_call_id": c.id, "content": text})
-            if fresh is not None:
+            if not tag_decided:
+                buf, _ = self._take_emotion_tag(buf, final=True)
+                if on_emotion is not None and (buf.strip() or not calls):
+                    on_emotion(self.emotion)
+
+            if calls:
+                # He decided to do something: say any lead-in, run it, tell him what happened.
+                if buf.strip():
+                    yield buf.strip()
+                    buf = ""
                 self.history.append({
-                    "role": "user",
-                    "content": [{"type": "text", "text": "Camera view after moving:"}, _image_part(fresh)],
+                    "role": "assistant",
+                    "content": "".join(raw),
+                    "tool_calls": [
+                        {"id": c["id"], "type": "function",
+                         "function": {"name": c["name"], "arguments": c["arguments"]}}
+                        for _, c in sorted(calls.items())
+                    ],
                 })
-        return Reply("Too many things at once. Ask again, human.", "thinking")
+                fresh: bytes | None = None
+                for _, c in sorted(calls.items()):
+                    if cancelled.is_set():
+                        raise Interrupted()
+                    try:
+                        args = json.loads(c["arguments"] or "{}")
+                    except json.JSONDecodeError:
+                        args = {}
+                    action = self.actions.get(c["name"])
+                    if action is None:
+                        text = f"unknown ability {c['name']}"
+                    else:
+                        try:
+                            text, img = action(args)
+                        except Exception as e:  # the robot didn't cooperate; say so
+                            text, img = f"could not do that: {e}", None
+                        if img:
+                            fresh = img
+                    print(f"  [{c['name']} {args} -> {text}]")
+                    self.history.append({"role": "tool", "tool_call_id": c["id"], "content": text})
+                if fresh is not None:
+                    self.history.append({
+                        "role": "user",
+                        "content": [{"type": "text", "text": "Camera view after moving:"}, _image_part(fresh)],
+                    })
+                continue
 
-    def _parse(self, raw: str) -> Reply:
-        emotion = "neutral"
-        m = _EMOTION_TAG.match(raw)
-        if m:
-            candidate = m.group(1).lower()
-            if candidate in config.EMOTIONS:
-                emotion = candidate
-            raw = _EMOTION_TAG.sub("", raw, count=1)
-        return Reply(raw.strip(), emotion)
+            if not "".join(raw).strip() and not nudged:
+                # Some models go quiet right after using an ability. Ask once.
+                nudged = True
+                self.history.append({"role": "user", "content": "(Tell your human what you just did, in one short line.)"})
+                continue
+            if nudged and self.history and self.history[-1].get("role") == "user":
+                self.history.pop()  # don't keep the nudge in the transcript
+            tail = buf.strip()
+            if tail and spoken < config.REPLY_MAX_SENTENCES:
+                yield tail
+            elif not spoken and not tail:
+                self.emotion = "thinking"
+                if on_emotion is not None:
+                    on_emotion(self.emotion)
+                yield "Hmm. Words did not come. Ask again."
+            return
+
+        self.emotion = "thinking"
+        if on_emotion is not None:
+            on_emotion(self.emotion)
+        yield "Too many things at once. Ask again, human."
+
+    def _take_emotion_tag(self, buf: str, final: bool) -> tuple[str, bool]:
+        """Look for "[happy] " at the start of the reply. Returns (text with the
+        tag removed, decided). Not decided means: need more text to know."""
+        lead = buf.lstrip()
+        if not lead:
+            return buf, final
+        if not lead.startswith("["):
+            return buf, True
+        if "]" in lead:
+            m = _EMOTION_TAG.match(lead)
+            if m:
+                candidate = m.group(1).lower()
+                if candidate in config.EMOTIONS:
+                    self.emotion = candidate
+                return _EMOTION_TAG.sub("", lead, count=1), True
+            return buf, True
+        if final or len(lead) > 24:
+            return buf, True  # a "[" with no "]" in sight: not a tag
+        return buf, False
 
     def _strip_images(self) -> None:
         """Replace old camera frames with a note. Keeping every image in the
