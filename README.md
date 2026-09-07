@@ -86,8 +86,9 @@ joins WiFi and takes orders from Rocky's brain on the Mac.
 
 On boot the robot runs an idle "alive" behavior: blinking and occasionally
 changing expression, so you can see everything working without typing
-anything. Idle head glances only happen while the brain is connected and
-Rocky is awake; asleep, or with no server running, the head stays still.
+anything. The head only moves when told to (by you, the brain, or face
+tracking); the brain switches the firmware's idle glances off on connect
+because they fought deliberate looks.
 
 ## Brain server quickstart
 
@@ -123,6 +124,15 @@ Conversation is meant to feel natural rather than push-to-talk:
   cancellation yet).
 
 Every reply prints a `timing` line so you can see where the time goes.
+
+The live view at http://localhost:8766/ is Rocky's console: what he sees
+(with a reticle showing where his head points), what he hears (a rolling
+sound strip, gold for speech, red while he talks), the last exchange, and
+controls for his head, face, voice, sleep, and the listening knobs above.
+Slider changes apply immediately and last until the server restarts; put
+the value in `server/brain/config.py` to keep it. The page only answers
+requests from this Mac, and its controls require a header a foreign web
+page cannot send.
 
 You can also type in the server console:
 

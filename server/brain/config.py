@@ -42,13 +42,13 @@ TTS_FALLBACK_VOICE = "Fred"  # macOS `say` voice used until Fish Audio is set up
 # more expressive. Fish's defaults are 0.7 / 0.7.
 TTS_TEMPERATURE = 0.4
 TTS_TOP_P = 0.6
-# Fish's output is quiet (peaks around 0.2-0.7 of full scale) and streams to
-# the speaker as it's generated, so per-clip normalizing isn't possible. This
-# gain is applied through a soft limiter: quiet lines get the full boost,
-# loud peaks are eased into full scale rather than clipped. Prefer the
-# robot's `volume` for everyday loudness; raise this only if short lines
-# still come out too quiet.
-TTS_GAIN = 2.5
+# Loudness. Fish's level wanders from line to line, so the audio goes through
+# an automatic gain control (mouth.Leveler) that holds it near TTS_LEVEL
+# (RMS, 0..1: 0.12 is a healthy speaking level) using at most TTS_MAX_GAIN of
+# boost. Prefer the robot's `volume` for everyday loudness; TTS_LEVEL sets
+# how much the voice is allowed to swell and drop.
+TTS_LEVEL = 0.12
+TTS_MAX_GAIN = 6.0
 # Diagnostics: save each spoken clip (server/debug/tts/…, keeps the last 30)
 # and, if DEBUG_TTS_CHECK, transcribe it afterwards to flag audio that doesn't
 # match the text — i.e. the voice model made something up. The check runs a
@@ -122,15 +122,18 @@ CAMERA_FPS = 10
 LIVE_VIEW_PORT = 8766
 LIVE_VIEW_BIND = "127.0.0.1"  # this Mac only. "0.0.0.0" would show the camera to the whole LAN.
 SEND_CAMERA_TO_BRAIN = True  # let Rocky see the camera when a question is about seeing
-# A frame is attached only when the question sounds visual (any of these
-# words), so "what's 9 times 16" doesn't come with a photo that distracts him.
-# He can always use his `look` ability to get a fresh picture on his own.
+# A frame is attached only when the question is about seeing (any of these
+# words or phrases). Everyday words like "this", "that", "here", "there" and
+# "right" are deliberately NOT in the list: they made him describe the room
+# in answers that had nothing to do with it. He can always use his `look`
+# ability to get a fresh picture on his own.
 CAMERA_WORDS = [
-    "see", "seeing", "look", "looking", "watch", "camera", "picture", "photo",
-    "image", "view", "show", "holding", "wearing", "color", "colour", "this",
-    "that", "here", "there", "room", "desk", "behind", "front", "left", "right",
-    "read", "screen", "whiteboard", "what am i", "who is", "who's", "how many",
-    "describe", "notice",
+    "see", "seeing", "look", "looking", "watch", "watching", "camera", "picture",
+    "photo", "image", "view", "describe", "notice", "recognize", "recognise",
+    "holding", "wearing", "what color", "what colour", "what am i", "who is",
+    "who's", "how many", "in front of you", "behind you", "on my desk", "on the desk",
+    "in the room", "whiteboard", "on the screen", "on my screen", "read this", "read that",
+    "read the", "read what",
 ]
 
 # Face tracking (M5): the head follows the biggest face in the picture.

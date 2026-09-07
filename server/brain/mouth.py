@@ -91,17 +91,60 @@ def _fish_stream(text: str) -> Iterator[bytes]:
             else:
                 carry = b""
             if chunk:
-                yield apply_gain(chunk, config.TTS_GAIN)
+                yield chunk
 
 
-def apply_gain(pcm: bytes, gain: float) -> bytes:
-    """Gain with a soft limiter. Streaming audio can't be normalized to its
-    peak (the peak isn't known until the end), so quiet lines get the full
-    gain while loud peaks are eased into full scale (tanh) instead of clipped."""
-    if gain == 1.0:
-        return pcm
-    samples = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
-    return (np.tanh(samples * gain) * 32767).astype(np.int16).tobytes()
+class Leveler:
+    """Streaming automatic gain: holds the voice near a steady loudness.
+
+    Fish's level wanders from sentence to sentence and within one, and audio
+    streams to the speaker as it's made, so it can't be normalized after the
+    fact. Each chunk (~130 ms) gets a loudness reading; a smoothed estimate
+    follows it upward over ~0.3 s and downward over ~1.5 s, ignoring
+    near-silence so gaps don't pump up the noise. The gain steers toward
+    TTS_LEVEL / estimate, capped at TTS_MAX_GAIN, and is ramped across each
+    chunk so nothing clicks. The shape inside a chunk (syllables) is kept.
+    Use one Leveler per reply so its sentences match each other."""
+
+    GATE = 0.004        # RMS below this is a gap, not a quiet word
+    ATTACK = 0.5        # per chunk: louder than expected → follow fast
+    RELEASE = 0.1       # per chunk: quieter than expected → follow slowly
+    SQUEEZE = 0.35      # how far each chunk is pulled toward the running level
+                        # (0 = only sentence-scale leveling, 1 = flatten every chunk)
+    CEILING = 0.95      # never let a chunk's peak exceed this: no clipping
+
+    def __init__(self) -> None:
+        self.env = 0.0      # loudness estimate; 0 = nothing heard yet
+        self.gain = 1.0
+
+    def process(self, pcm: bytes) -> bytes:
+        x = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+        if not len(x):
+            return pcm
+        rms = float(np.sqrt(np.mean(x * x)))
+        if rms > self.GATE:
+            if self.env == 0.0:
+                self.env = rms                                  # first sound: trust it
+            elif rms > self.env:
+                self.env += self.ATTACK * (rms - self.env)
+            else:
+                self.env += self.RELEASE * (rms - self.env)
+        if self.env and rms > self.GATE:
+            # Judge this chunk by a blend of the running level and its own
+            # level: loud bits come down a little, quiet words come up a little.
+            judged = self.env * (rms / self.env) ** self.SQUEEZE
+            target = min(config.TTS_MAX_GAIN, max(0.5, config.TTS_LEVEL / judged))
+        else:
+            target = self.gain  # a gap: hold the gain where it is
+        peak = float(np.abs(x).max())
+        if peak > 0:
+            target = min(target, self.CEILING / peak)
+        y = x * np.linspace(self.gain, target, len(x), dtype=np.float32)
+        self.gain = target
+        top = float(np.abs(y).max())
+        if top > self.CEILING:  # the ramp started above the cap: trim the whole chunk
+            y *= self.CEILING / top
+        return (y * 32767).astype(np.int16).tobytes()
 
 
 def _wav_to_pcm16k(wav_bytes: bytes) -> bytes:
@@ -146,13 +189,15 @@ def _synthesize_say(text: str) -> bytes:
     return wav[44:]  # skip the 44-byte WAV header; the rest is raw PCM
 
 
-def stream(text: str) -> Iterator[bytes]:
+def stream(text: str, leveler: Leveler | None = None) -> Iterator[bytes]:
     """Rocky's words as 16 kHz mono s16le PCM chunks, yielded as they're made.
     Fish Audio when it's set up and reachable, else the Mac's own voice (all
-    at once). A saved copy goes to debug/tts/ when DEBUG_SAVE_TTS is on."""
+    at once). Loudness is steadied by `leveler` (a fresh one if none is
+    given). A saved copy goes to debug/tts/ when DEBUG_SAVE_TTS is on."""
     text = clean_for_tts(text)
     if not text:
         return
+    leveler = leveler or Leveler()
     parts: list[bytes] = []
     complete = False
     try:
@@ -166,13 +211,15 @@ def stream(text: str) -> Iterator[bytes]:
                 print(f"(fish audio failed, using Mac voice: {e})")
                 chunks = None
         if chunks is None:
-            first = normalize(_synthesize_say(text))
+            first = _synthesize_say(text)
         if first:
+            first = leveler.process(first)
             parts.append(first)
             yield first
         if chunks is not None:
             try:
                 for chunk in chunks:
+                    chunk = leveler.process(chunk)
                     parts.append(chunk)
                     yield chunk
             except Exception as e:  # dropped mid-stream: say what we have

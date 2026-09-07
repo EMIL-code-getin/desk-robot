@@ -19,6 +19,11 @@ class ServoNeck {
   // Calibration only: drive straight to a head angle, ignoring the limits.
   // Use it to find which way the servo turns before trusting the limits.
   void setRaw(float deg);
+  // Keep this axis powered at its current angle. An unpowered servo sags
+  // under the head's weight when the other axis swings; call this while the
+  // other axis is moving.
+  void hold();
+  bool moving() const { return fabsf(targetDeg_ - currentDeg_) > 0.25f; }
   float current() const { return currentDeg_; }
   float target() const { return targetDeg_; }
 

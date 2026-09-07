@@ -62,8 +62,23 @@ tracker: Tracker | None = None
 
 FRAME_BYTES = 3200  # 100 ms of 16 kHz s16le per audio frame to the robot
 
+# What the live-view console shows and can change (see console_state / console_command).
+current_emotion = "neutral"
+speaker_volume = 0.7        # mirrors firmware SPEAKER_VOLUME until changed here
+thinking = False            # a reply is being composed (before it's spoken)
+TUNABLE = {                 # config knobs the console may change live: (min, max)
+    "VAD_THRESHOLD": (0.1, 0.95),
+    "TURN_THRESHOLD": (0.1, 0.95),
+    "TURN_MAX_SILENCE": (0.5, 6.0),
+    "TTS_LEVEL": (0.04, 0.25),
+    "AWAKE_SECONDS": (10.0, 600.0),
+}
+
 
 async def send_to_robot(payload: dict) -> bool:
+    global current_emotion
+    if payload.get("type") == "emotion":
+        current_emotion = payload.get("name", current_emotion)
     if robot_socket is None:
         print("(no robot connected — command not sent)")
         return False
@@ -116,6 +131,8 @@ async def handle_robot(websocket: websockets.ServerConnection) -> None:
     if config.MIC_SOURCE in ("auto", "robot"):
         await send_to_robot({"type": "mic", "on": True})
     await send_to_robot({"type": "stream", "on": True, "fps": config.CAMERA_FPS})
+    # No idle head glances: they fight deliberate looks. The eyes still move.
+    await send_to_robot({"type": "glance", "on": False})
     try:
         async for message in websocket:
             if isinstance(message, bytes):
@@ -198,7 +215,7 @@ async def handle_console_line(line: str) -> bool:
             print("usage: say <text>")
     elif cmd == "volume":
         try:
-            await send_to_robot({"type": "volume", "level": float(arg)})
+            await set_volume(float(arg))
         except ValueError:
             print("usage: volume <0.0-1.0>")
     else:
@@ -209,36 +226,40 @@ async def handle_console_line(line: str) -> bool:
 # ── Rocky's abilities (called by the brain, from its worker thread) ──────────
 
 async def look(args: dict) -> tuple[str, bytes | None]:
-    """Move the head, wait for it to get there, and grab a fresh frame."""
+    """Move the head, wait for it to get there, and grab a fresh frame.
+    Only the axis that was asked for moves: "left"/"right" pan, "down"/
+    "level" tilt, "center" both."""
     pan = tracker.pan if tracker else 0.0
     tilt = tracker.tilt if tracker else 0.0
+    move_pan = move_tilt = False
     d = args.get("direction")
-    if d == "left":
-        pan = -40.0
-    elif d == "right":
-        pan = 40.0
+    try:
+        amount = float(args["degrees"]) if args.get("degrees") is not None else None
+    except (TypeError, ValueError):
+        amount = None
+    if d in ("left", "right"):
+        deg = amount if amount is not None else 40.0
+        pan, move_pan = (-deg if d == "left" else deg), True
     elif d == "down":
-        tilt = config.TRACK_TILT_MIN
+        tilt, move_tilt = -(amount if amount is not None else -config.TRACK_TILT_MIN), True
     elif d == "level":
-        tilt = config.TRACK_TILT_MAX
+        tilt, move_tilt = config.TRACK_TILT_MAX, True
     elif d == "center":
-        pan, tilt = 0.0, config.TRACK_TILT_MAX
-    if args.get("pan") is not None:
-        pan = float(args["pan"])
-    if args.get("tilt") is not None:
-        tilt = float(args["tilt"])
+        pan, tilt, move_pan, move_tilt = 0.0, config.TRACK_TILT_MAX, True, True
+    if not (move_pan or move_tilt):
+        return ("Say where to look: left, right, down, level, or center.", None)
     pan = max(-config.TRACK_PAN_LIMIT, min(config.TRACK_PAN_LIMIT, pan))
     tilt = max(config.TRACK_TILT_MIN, min(config.TRACK_TILT_MAX, tilt))
 
     if tracker is not None and tracker.enabled:
         await set_tracking(False, announce=False)  # tracking would drag the head back
-    # Idle glances would wander the head back toward center within seconds;
-    # a deliberate look holds until he dozes off (or is told to center).
     await set_head_held(d != "center")
-    await send_to_robot({"type": "pan", "deg": pan})
-    await send_to_robot({"type": "tilt", "deg": tilt})
+    if move_pan:
+        await send_to_robot({"type": "pan", "deg": pan})
+    if move_tilt:
+        await send_to_robot({"type": "tilt", "deg": tilt})
     if tracker is not None:
-        tracker.note_pose(pan=pan, tilt=tilt)
+        tracker.note_pose(pan=pan if move_pan else None, tilt=tilt if move_tilt else None)
     await asyncio.sleep(1.2)  # servo easing + a frame or two from the new angle
     seq = eyes.frame_seq
     for _ in range(10):
@@ -257,17 +278,14 @@ async def look(args: dict) -> tuple[str, bytes | None]:
     return (where + (" Fresh camera image attached." if jpeg else " No camera image available."), jpeg)
 
 
-head_held = False  # idle glances paused because he was told to look somewhere
+head_held = False  # he was told to look somewhere and is holding that pose
 
 
 async def set_head_held(held: bool) -> None:
-    """Pause the firmware's idle glances while a deliberate look is in effect."""
+    """Remember that a deliberate look is in effect (shown on the console).
+    Idle glances are always off, so nothing else needs to move."""
     global head_held
-    if held == head_held:
-        return
     head_held = held
-    if not (tracker is not None and tracker.tracking):  # tracking manages glances itself
-        await send_to_robot({"type": "glance", "on": not held})
 
 
 async def set_tracking(on: bool, announce: bool = True) -> tuple[str, bytes | None]:
@@ -276,7 +294,6 @@ async def set_tracking(on: bool, announce: bool = True) -> tuple[str, bytes | No
     tracker.enabled = on
     if not on and tracker.tracking:
         tracker.tracking = False
-        await send_to_robot({"type": "glance", "on": True})
         eyes.tracking_info = {"tracking": False, "pan": tracker.pan, "tilt": tracker.tilt}
     if announce:
         print(f"tracking {'on' if on else 'off'}")
@@ -336,6 +353,7 @@ class SpokenReply:
     def __init__(self, loop: asyncio.AbstractEventLoop, timeline: Timeline) -> None:
         self.loop = loop
         self.tl = timeline
+        self.leveler = mouth.Leveler()  # one per reply: steady loudness across its sentences
         self.sentences: queue.Queue[str | None] = queue.Queue()
         self.audio: queue.Queue[bytes | None] = queue.Queue()
         self.cancel = threading.Event()
@@ -346,8 +364,8 @@ class SpokenReply:
     def text(self) -> str:
         return " ".join(self.spoken)
 
-    def think_and_speak(self, question: str, jpeg: bytes | None) -> None:
-        threading.Thread(target=self._think, args=(question, jpeg), daemon=True).start()
+    def think_and_speak(self, question: str, jpeg: bytes | None, camera_wanted: bool = False) -> None:
+        threading.Thread(target=self._think, args=(question, jpeg, camera_wanted), daemon=True).start()
         threading.Thread(target=self._voice, daemon=True).start()
 
     def speak_fixed(self, text: str) -> None:
@@ -364,8 +382,9 @@ class SpokenReply:
         self.tl.mark("face")
         asyncio.run_coroutine_threadsafe(send_to_robot({"type": "emotion", "name": name}), self.loop)
 
-    def _think(self, question: str, jpeg: bytes | None) -> None:
-        gen = brain.reply(question, jpeg, on_emotion=self._on_emotion, cancelled=self.cancel)
+    def _think(self, question: str, jpeg: bytes | None, camera_wanted: bool) -> None:
+        gen = brain.reply(question, jpeg, on_emotion=self._on_emotion, cancelled=self.cancel,
+                          camera_wanted=camera_wanted)
         try:
             for sentence in gen:
                 if self.cancel.is_set():
@@ -388,7 +407,7 @@ class SpokenReply:
             while (sentence := self.sentences.get()) is not None:
                 if self.cancel.is_set():
                     continue
-                for chunk in mouth.stream(sentence):
+                for chunk in mouth.stream(sentence, self.leveler):
                     if self.cancel.is_set():
                         break
                     if not self.pcm:
@@ -493,14 +512,21 @@ async def converse(question: str, ended_at: float | None = None, heard_at: float
         tl.marks["heard"] = heard_at
     speech_started.clear()
     await send_to_robot({"type": "emotion", "name": "thinking"})
-    jpeg = eyes.latest() if (config.SEND_CAMERA_TO_BRAIN and wants_camera(question)) else None
+    camera_wanted = config.SEND_CAMERA_TO_BRAIN and wants_camera(question)
+    jpeg = eyes.latest() if camera_wanted else None
+    if camera_wanted and jpeg is None:
+        print("  (camera has no fresh frame — telling him he can't see right now)")
     reply = SpokenReply(loop, tl)
-    reply.think_and_speak(question, jpeg)
+    reply.think_and_speak(question, jpeg, camera_wanted)
+    global thinking
+    thinking = True
     try:
         finished = await reply.play()
     except Exception as e:  # a speaker hiccup shouldn't kill the server
         print(f"(could not speak: {e})")
         finished = True
+    finally:
+        thinking = False
     if not finished:
         print("  (you kept talking — Rocky will hear the rest and answer once)")
         await send_to_robot({"type": "emotion", "name": "neutral"})
@@ -551,6 +577,110 @@ def check_tts(text: str, pcm: bytes) -> None:
         print(f"     text : {text}\n     heard: {heard_text}")
     elif len(missing) >= max(3, len(said) // 2):
         print(f"  !! TTS CHECK: audio is missing much of the text. heard: {heard_text}")
+
+
+async def set_volume(level: float) -> None:
+    global speaker_volume
+    speaker_volume = max(0.0, min(1.0, level))
+    await send_to_robot({"type": "volume", "level": speaker_volume})
+
+
+# ── The live-view console (http://localhost:8766) ────────────────────────────
+
+def console_state() -> dict:
+    """Extra fields for /status: everything the page shows beyond the camera."""
+    now = time.time()
+    return {
+        "robot": robot_socket is not None,
+        "listening": ears is not None,
+        "mic": ears.source if ears is not None else None,
+        "level": ears.level if ears is not None else 0.0,
+        "speech_prob": ears.speech_prob if ears is not None else 0.0,
+        "hearing": ears.hearing if ears is not None else False,
+        "speaking": ears.muted.is_set() if ears is not None else False,
+        "thinking": thinking,
+        "awake": now < awake_until,
+        "awake_for": max(0.0, awake_until - now),
+        "emotion": current_emotion,
+        "head_held": head_held,
+        "tracking_enabled": tracker.enabled if tracker is not None else False,
+        "volume": speaker_volume,
+        "tuning": {k: getattr(config, k) for k in TUNABLE},
+    }
+
+
+def console_command(action: str, payload: dict) -> dict:
+    """A control from the page. Runs on the HTTP thread; hops onto the event
+    loop. Raises ValueError for anything the page shouldn't have asked."""
+    fut = asyncio.run_coroutine_threadsafe(_console_command(action, payload), main_loop)
+    return fut.result(timeout=10)
+
+
+def _number(payload: dict, key: str, lo: float, hi: float) -> float:
+    try:
+        v = float(payload[key])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError(f"{key} must be a number")
+    if not (lo <= v <= hi):
+        raise ValueError(f"{key} must be between {lo:g} and {hi:g}")
+    return v
+
+
+async def _console_command(action: str, payload: dict) -> dict:
+    global awake_until
+    if action == "emotion":
+        name = payload.get("name")
+        if name not in config.EMOTIONS:
+            raise ValueError(f"emotions: {', '.join(config.EMOTIONS)}")
+        await send_to_robot({"type": "emotion", "name": name})
+    elif action == "head":
+        pan = _number(payload, "pan", -config.TRACK_PAN_LIMIT, config.TRACK_PAN_LIMIT)
+        tilt = _number(payload, "tilt", config.TRACK_TILT_MIN, config.TRACK_TILT_MAX)
+        if tracker is not None and tracker.enabled:
+            await set_tracking(False)
+        await set_head_held(True)
+        await send_to_robot({"type": "pan", "deg": pan})
+        await send_to_robot({"type": "tilt", "deg": tilt})
+        if tracker is not None:
+            tracker.note_pose(pan=pan, tilt=tilt)
+    elif action == "center":
+        await set_head_held(False)
+        await send_to_robot({"type": "pan", "deg": 0})
+        await send_to_robot({"type": "tilt", "deg": 0})
+        if tracker is not None:
+            tracker.note_pose(pan=0, tilt=0)
+    elif action == "volume":
+        await set_volume(_number(payload, "level", 0.0, 1.0))
+    elif action == "track":
+        await set_tracking(bool(payload.get("on", True)))
+    elif action == "sleep":
+        if payload.get("on", True):
+            awake_until = 0.0
+            await send_to_robot({"type": "emotion", "name": "sleepy"})
+            await send_to_robot({"type": "asleep", "on": True})
+            await set_head_held(False)
+        else:
+            awake_until = time.time() + config.AWAKE_SECONDS
+            await send_to_robot({"type": "asleep", "on": False})
+            await send_to_robot({"type": "emotion", "name": "neutral"})
+    elif action in ("say", "ask"):
+        text = str(payload.get("text", "")).strip()
+        if not text or len(text) > 300:
+            raise ValueError("text must be 1 to 300 characters")
+        print(f"console: {action} {text}")
+        asyncio.create_task(say(text) if action == "say" else converse(text))
+    elif action == "tune":
+        key = payload.get("key")
+        if key not in TUNABLE:
+            raise ValueError(f"tunable: {', '.join(TUNABLE)}")
+        value = _number(payload, "value", *TUNABLE[key])
+        setattr(config, key, value)
+        if ears is not None:
+            ears.apply_config()
+        print(f"console: {key} = {value:g} (until restart; set it in config.py to keep)")
+    else:
+        raise ValueError(f"no such control: {action}")
+    return {}
 
 
 # ── Listening ────────────────────────────────────────────────────────────────
@@ -620,7 +750,6 @@ async def head_loop() -> None:
     while True:
         pan, tilt, tracking = await head_moves.get()
         if tracking != was_tracking:
-            await send_to_robot({"type": "glance", "on": not tracking})
             print("tracking: face found — head follows" if tracking else "tracking: face lost — idle glances resume")
             was_tracking = tracking
         if pan is not None:
@@ -752,8 +881,10 @@ async def console_loop() -> None:
 async def main() -> None:
     print(f"{config.ROBOT_NAME} brain server — model {config.MODEL}")
     print(f"listening for the robot on ws://0.0.0.0:{config.PORT}")
+    eyes.state_provider = console_state
+    eyes.command_handler = console_command
     eyes.serve(config.LIVE_VIEW_PORT, config.LIVE_VIEW_BIND)
-    print(f"live camera view: http://localhost:{config.LIVE_VIEW_PORT}/  (this Mac only)")
+    print(f"live view + controls: http://localhost:{config.LIVE_VIEW_PORT}/  (this Mac only)")
     if not os.environ.get("ROBOT_TOKEN"):
         print("WARNING: ROBOT_TOKEN is not set in server/.env — the robot will be refused")
     global tracker, brain, main_loop

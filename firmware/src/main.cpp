@@ -290,6 +290,9 @@ void loop() {
     lastFrameMs = now;
     face.setTalking(speaker.speaking(), speaker.level());
     face.update(now);
+    // While one axis swings, keep the other powered so it can't sag.
+    if (panNeck.moving()) tiltNeck.hold();
+    if (tiltNeck.moving()) panNeck.hold();
     panNeck.update(now);
     tiltNeck.update(now);
   }

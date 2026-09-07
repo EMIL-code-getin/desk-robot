@@ -3,10 +3,17 @@
 The robot sends one JPEG per binary frame (type byte 0x02). We keep only the
 newest. A tiny HTTP server (standard library, its own thread) serves:
 
-  /          a page with the live picture and a status line
+  /          the console page (brain/liveview.html): what Rocky sees and
+             hears, plus controls for his head, face, voice, sleep and
+             listening tuning
   /stream    multipart MJPEG — the newest frame, pushed as it changes
   /frame     the newest frame as a plain JPEG
-  /status    JSON: fps, frame age, chip temperature, last transcript
+  /status    JSON: fps, frame age, chip temperature, last transcript, and
+             whatever main.py adds through `state_provider`
+  /api/<x>   POST, JSON body: a control action, handed to `command_handler`
+             (main.py). Only answers requests that carry the X-Rocky-Console
+             header, which a cross-site page can't add without a CORS
+             preflight we never grant.
 """
 
 from __future__ import annotations
@@ -14,7 +21,9 @@ from __future__ import annotations
 import json
 import threading
 import time
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from . import config
 
@@ -33,6 +42,9 @@ class Eyes:
         self.temperature: float | None = None
         self.last_heard = ""
         self.last_said = ""
+        # main.py plugs in: extra /status fields, and the handler for /api/<action>.
+        self.state_provider: Callable[[], dict] | None = None
+        self.command_handler: Callable[[str, dict], dict] | None = None
         self._cond = threading.Condition()
 
     # ── robot → server ──────────────────────────────────────────────────────
@@ -81,6 +93,9 @@ class Eyes:
     # ── browser ─────────────────────────────────────────────────────────────
     def serve(self, port: int, bind: str = "127.0.0.1") -> None:
         eyes = self
+        page = (Path(__file__).with_name("liveview.html").read_text(encoding="utf-8")
+                .replace("{name}", config.ROBOT_NAME).encode())
+        local_hosts = ("localhost", "127.0.0.1", "::1", bind.lower())
 
         class Handler(BaseHTTPRequestHandler):
             server_version = "desk-robot"  # don't advertise the Python version
@@ -89,17 +104,57 @@ class Eyes:
             def log_message(self, *args) -> None:  # keep the console quiet
                 pass
 
-            def do_GET(self) -> None:
+            def _local(self) -> bool:
                 # A malicious web page can point its own domain at 127.0.0.1
                 # (DNS rebinding) and read a localhost server. Only answer
                 # requests addressed to us by a local name.
                 host = (self.headers.get("Host") or "").split(":")[0].strip("[]").lower()
-                if host not in ("localhost", "127.0.0.1", "::1", bind.lower()):
+                if host not in local_hosts:
                     self._reply(403, "text/plain", b"forbidden")
+                    return False
+                return True
+
+            def do_POST(self) -> None:
+                if not self._local():
+                    return
+                # Controls: a page on another site could still POST here
+                # (browsers allow simple cross-site POSTs), so demand a custom
+                # header — that turns it into a preflighted request, and we
+                # never answer preflights. Belt and braces: check Origin too.
+                origin = (self.headers.get("Origin") or "").lower()
+                origin_host = origin.split("://", 1)[-1].split(":")[0].strip("[]")
+                if self.headers.get("X-Rocky-Console") != "1" or (origin and origin_host not in local_hosts):
+                    self._reply(403, "application/json", b'{"error": "not the console"}')
+                    return
+                if not self.path.startswith("/api/") or eyes.command_handler is None:
+                    self._reply(404, "application/json", b'{"error": "no such control"}')
+                    return
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                    if length > 64 * 1024:
+                        raise ValueError("too much")
+                    payload = json.loads(self.rfile.read(length) or b"{}")
+                    if not isinstance(payload, dict):
+                        raise ValueError("body must be a JSON object")
+                except (ValueError, json.JSONDecodeError) as e:
+                    self._reply(400, "application/json", json.dumps({"error": f"bad request: {e}"}).encode())
+                    return
+                action = self.path[len("/api/"):]
+                try:
+                    result = eyes.command_handler(action, payload)
+                except ValueError as e:  # the control said no
+                    self._reply(400, "application/json", json.dumps({"error": str(e)}).encode())
+                    return
+                except Exception as e:  # something broke inside the server
+                    self._reply(500, "application/json", json.dumps({"error": f"{type(e).__name__}: {e}"}).encode())
+                    return
+                self._reply(200, "application/json", json.dumps({"ok": True, **(result or {})}).encode())
+
+            def do_GET(self) -> None:
+                if not self._local():
                     return
                 if self.path == "/":
-                    body = PAGE.replace("{name}", config.ROBOT_NAME).encode()
-                    self._reply(200, "text/html; charset=utf-8", body)
+                    self._reply(200, "text/html; charset=utf-8", page)
                 elif self.path == "/frame":
                     if eyes.jpeg:
                         self._reply(200, "image/jpeg", eyes.jpeg)
@@ -115,6 +170,11 @@ class Eyes:
                         "last_said": eyes.last_said,
                         **eyes.tracking_info,
                     }
+                    if eyes.state_provider is not None:
+                        try:
+                            st.update(eyes.state_provider())
+                        except Exception as e:  # never let a status bug kill the page
+                            st["state_error"] = str(e)
                     self._reply(200, "application/json", json.dumps(st).encode())
                 elif self.path == "/stream":
                     self._stream()
@@ -153,42 +213,3 @@ class Eyes:
         server.daemon_threads = True
         threading.Thread(target=server.serve_forever, daemon=True).start()
 
-
-PAGE = """<!doctype html>
-<meta charset="utf-8">
-<title>{name} live view</title>
-<style>
-  body { margin: 0; background: #111; color: #ddd; font: 14px system-ui, sans-serif; }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
-  img { width: 100%; image-rendering: auto; background: #000; border-radius: 8px; }
-  .row { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 10px; color: #9ab; }
-  .say { margin-top: 8px; color: #eee; }
-  .say span { color: #7c9; }
-</style>
-<div class="wrap">
-  <img id="v" src="/stream" alt="waiting for the robot's camera...">
-  <div class="row">
-    <div>fps <b id="fps">–</b></div>
-    <div>frame age <b id="age">–</b> s</div>
-    <div>chip <b id="temp">–</b> °C</div>
-    <div>tracking <b id="track">–</b></div>
-    <div>head pan <b id="pan">–</b>° tilt <b id="tilt">–</b>°</div>
-  </div>
-  <div class="say">heard: <span id="heard"></span></div>
-  <div class="say">{name}: <span id="said"></span></div>
-</div>
-<script>
-  async function tick() {
-    try {
-      const s = await (await fetch('/status')).json();
-      fps.textContent = s.fps; age.textContent = s.frame_age_s ?? '–';
-      temp.textContent = s.temperature_c ?? '–';
-      track.textContent = s.tracking === undefined ? '–' : (s.tracking ? 'face' : 'no face');
-      pan.textContent = s.pan ?? '–'; tilt.textContent = s.tilt ?? '–';
-      heard.textContent = s.last_heard; said.textContent = s.last_said;
-    } catch (e) {}
-    setTimeout(tick, 1000);
-  }
-  tick();
-</script>
-"""

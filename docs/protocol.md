@@ -34,7 +34,7 @@ the latest frame for the live-view page, the face tracker, and Claude.
 {"type": "speak_end"}             // no more audio; robot replies speak_done when played out
 {"type": "volume", "level": 0.4}  // speaker volume 0.0-1.0 (M3)
 {"type": "asleep", "on": true}    // eyes shut + Z's; false = wake up. Asleep = no idle glances.
-{"type": "glance", "on": false}   // allow/forbid idle head glances (off while a `look` pose is held or a face is tracked). They only happen while connected and awake.
+{"type": "glance", "on": false}   // allow/forbid the firmware's idle head glances; the server sends off on connect and leaves them off
 {"type": "mic", "on": true}       // stream the microphone to the server
 {"type": "stream", "on": true, "fps": 10}   // start/stop the camera stream, set rate (M5)
 ```

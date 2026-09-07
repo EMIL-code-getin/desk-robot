@@ -54,11 +54,17 @@ TOOLS = [
                     "direction": {
                         "type": "string",
                         "enum": ["left", "right", "down", "level", "center"],
-                        "description": "A named direction (center = straight ahead, level)",
+                        "description": (
+                            "left/right turn the head only (no nod); down/level nod only (no turn); "
+                            "center = straight ahead and level"
+                        ),
                     },
-                    "pan": {"type": "number", "description": "Absolute pan in degrees: -60 (your left) to 60 (your right)"},
-                    "tilt": {"type": "number", "description": "Absolute tilt in degrees: -30 (down) to 0 (level)"},
+                    "degrees": {
+                        "type": "number",
+                        "description": "How far: 5-60 for left/right, 5-30 for down. Omit for a normal look.",
+                    },
                 },
+                "required": ["direction"],
             },
         },
     },
@@ -104,9 +110,9 @@ class RobotBrain:
         self.emotion = "neutral"        # emotion of the reply in progress
         self._inflight: tuple[int, dict] | None = None  # (index, user message) being answered
 
-    def ask(self, question: str, jpeg: bytes | None = None) -> Reply:
+    def ask(self, question: str, jpeg: bytes | None = None, camera_wanted: bool = False) -> Reply:
         """The whole reply at once. See reply() for the streaming form."""
-        sentences = list(self.reply(question, jpeg))
+        sentences = list(self.reply(question, jpeg, camera_wanted=camera_wanted))
         return Reply(" ".join(sentences), self.emotion)
 
     def reply(
@@ -115,6 +121,7 @@ class RobotBrain:
         jpeg: bytes | None = None,
         on_emotion: Callable[[str], None] | None = None,
         cancelled: threading.Event | None = None,
+        camera_wanted: bool = False,
     ) -> Iterator[str]:
         """Rocky's reply, one sentence at a time as the model writes it.
 
@@ -122,11 +129,16 @@ class RobotBrain:
         the reply is known — before the first sentence — so the face can
         change while he's still composing. Set `cancelled`, or close the
         generator early, and the question is dropped from his memory as if it
-        was never asked.
+        was never asked. `camera_wanted` with no `jpeg` means the question
+        was about seeing but the camera had no fresh picture; he's told so,
+        otherwise he answers from memory and claims to see things.
         """
         content: list[dict] = [{"type": "text", "text": question}]
         if jpeg is not None:
+            content.append({"type": "text", "text": "(Live picture from your camera, taken just now, because the question seems to be about what you can see. If it isn't, ignore the picture.)"})
             content.append(_image_part(jpeg))
+        elif camera_wanted:
+            content.append({"type": "text", "text": "(Your camera has no fresh picture right now, so you cannot see anything at the moment.)"})
         user_msg = {"role": "user", "content": content}
         self.history.append(user_msg)
         mark = len(self.history) - 1

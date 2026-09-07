@@ -81,10 +81,7 @@ class Segmenter:
         self.pre_roll: deque[np.ndarray] = deque(maxlen=max(1, int(pre_roll / CHUNK_SECONDS)))
         self.min_chunks = int(min_length / CHUNK_SECONDS)
         self.max_chunks = int(max_length / CHUNK_SECONDS)
-        self.pause_chunks = max(1, int(config.TURN_PAUSE_SECONDS / CHUNK_SECONDS))
-        self.recheck_chunks = max(1, int(config.TURN_RECHECK_SECONDS / CHUNK_SECONDS))
-        self.max_quiet_chunks = max(self.pause_chunks, int(config.TURN_MAX_SILENCE / CHUNK_SECONDS))
-        self.confirm_chunks = max(1, int(config.CANCEL_MIN_SPEECH / CHUNK_SECONDS))
+        self.apply_config()
         self._pending = np.zeros(0, dtype=np.float32)  # samples not yet a full VAD chunk
         self._last_push = 0.0
         self.current: list[np.ndarray] = []
@@ -98,6 +95,13 @@ class Segmenter:
         self._next_check = 0
         self.speech_prob = 0.0   # VAD output for the latest chunk (for `mic`)
         self.last_decision = ""  # why the last turn ended (for logs)
+
+    def apply_config(self) -> None:
+        """Re-read the timing knobs from config (they can change at runtime)."""
+        self.pause_chunks = max(1, int(config.TURN_PAUSE_SECONDS / CHUNK_SECONDS))
+        self.recheck_chunks = max(1, int(config.TURN_RECHECK_SECONDS / CHUNK_SECONDS))
+        self.max_quiet_chunks = max(self.pause_chunks, int(config.TURN_MAX_SILENCE / CHUNK_SECONDS))
+        self.confirm_chunks = max(1, int(config.CANCEL_MIN_SPEECH / CHUNK_SECONDS))
 
     @property
     def talking(self) -> bool:
@@ -280,6 +284,10 @@ class Ears:
     @property
     def speech_prob(self) -> float:
         return self._segmenter.speech_prob
+
+    def apply_config(self) -> None:
+        """Pick up changed listening knobs from config without restarting."""
+        self._segmenter.apply_config()
 
     @property
     def hearing(self) -> bool:

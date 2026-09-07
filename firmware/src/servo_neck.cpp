@@ -43,6 +43,13 @@ void ServoNeck::setRaw(float deg) {
   writeAngle(deg);
 }
 
+void ServoNeck::hold() {
+  bool wasAttached = attached_;
+  attachIfNeeded();
+  if (!wasAttached) writeAngle(currentDeg_);  // put it back where it belongs
+  settledSinceMs_ = 0;                        // and don't relax while held
+}
+
 void ServoNeck::setTarget(float deg) {
   targetDeg_ = constrain(deg, minDeg_, maxDeg_);
   settledSinceMs_ = 0;
