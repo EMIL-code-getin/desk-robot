@@ -13,7 +13,9 @@ if _ENV_FILE.is_file():
         if not _line or _line.startswith("#") or "=" not in _line:
             continue
         _k, _v = _line.split("=", 1)
-        os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
+        _v = _v.strip().strip("'\"")
+        if _v:  # a blank line in .env means "not set", not "set to nothing"
+            os.environ.setdefault(_k.strip(), _v)
 
 # The robot's name — the wake word is "hey <name>".
 ROBOT_NAME = "Rocky"
@@ -22,11 +24,21 @@ ROBOT_NAME = "Rocky"
 # stays out of the repo; "friend" until you do.
 HUMAN_NAME = os.environ.get("HUMAN_NAME", "friend")
 
-# Language model for the personality, by OpenRouter model id (openrouter.ai
-# /models). Needs OPENROUTER_API_KEY in your shell. One key, any model:
-#   "anthropic/claude-haiku-4.5"     best at staying in character, ~$1-4/month
-#   "google/gemini-2.5-flash-lite"   cheapest that still sounds like Rocky
-#   "openai/gpt-4.1-mini"            middle ground
+# Language model. The brain speaks the OpenAI-style chat API, which
+# OpenRouter, Anthropic and OpenAI all serve, so pick a provider here and
+# put its key in server/.env as LLM_API_KEY. OpenRouter is the default
+# because one key reaches every model, and the model is just a string:
+#
+#   provider    LLM_BASE_URL                       MODEL (examples)
+#   OpenRouter  https://openrouter.ai/api/v1       anthropic/claude-haiku-4.5   (best at staying in character, ~$1-4/month)
+#                                                  google/gemini-2.5-flash-lite (cheapest that still sounds like Rocky)
+#                                                  openai/gpt-4.1-mini          (middle ground)
+#   Anthropic   https://api.anthropic.com/v1/      claude-haiku-4-5
+#   OpenAI      https://api.openai.com/v1          gpt-4.1-mini
+#
+# The model must accept images (Rocky sends camera frames) and tool calls
+# (he moves his head with them).
+LLM_BASE_URL = "https://openrouter.ai/api/v1"
 MODEL = "anthropic/claude-haiku-4.5"
 
 # WebSocket port the robot connects to.
@@ -63,8 +75,7 @@ TTS_LEVEL = 0.26
 TTS_HIGHPASS_HZ = 0.0
 TTS_PRESENCE_DB = 0.0
 
-# Text-to-speech (M3). The voice comes from Fish Audio (TTS_VOICE_ID above).
-TTS_PROVIDER = "fish"
+# Text-to-speech. The voice comes from Fish Audio (TTS_VOICE_ID above).
 TTS_FALLBACK_VOICE = "Fred"  # macOS `say` voice used until Fish Audio is set up
 # Loudness. Fish's level wanders from line to line, so the audio goes through
 # an automatic gain control (mouth.Leveler) that holds it near TTS_LEVEL
@@ -73,16 +84,16 @@ TTS_FALLBACK_VOICE = "Fred"  # macOS `say` voice used until Fish Audio is set up
 # TTS_LEVEL if the voice sounds strained, raise the robot's `volume` for
 # everyday loudness.
 TTS_MAX_GAIN = 8.0
-# Diagnostics: save each spoken clip (server/debug/tts/…, keeps the last 30)
-# and, if DEBUG_TTS_CHECK, transcribe it afterwards to flag audio that doesn't
-# match the text — i.e. the voice model made something up. The check runs a
-# second speech model right after every reply, which slows the next
-# transcription if you answer quickly; leave it off unless the voice misbehaves.
-DEBUG_SAVE_TTS = True
+# Diagnostics, both off by default so nothing is written to disk. DEBUG_SAVE_TTS
+# saves each spoken clip and its text to server/debug/tts/ (git-ignored, keeps
+# the last 30); DEBUG_TTS_CHECK also transcribes each clip afterwards to flag
+# audio that doesn't match the text, i.e. the voice model made something up.
+# The check runs a second speech model right after every reply, which slows
+# the next transcription if you answer quickly.
+DEBUG_SAVE_TTS = False
 DEBUG_TTS_CHECK = False
 
-# Listening (M4). Prototype on the Mac's mic now; the robot's mic takes over
-# once its audio streams in over WiFi (M3).
+# Listening. The robot's mic when it is connected, the Mac's otherwise.
 LISTEN_ON_START = True
 WAKE_PHRASES = [  # what speech-to-text tends to hear for "hey Rocky"
     "hey rocky",
@@ -92,13 +103,17 @@ WAKE_PHRASES = [  # what speech-to-text tends to hear for "hey Rocky"
     "a rocky",
     "hey ricky",
 ]
-STT_MODEL = "base.en"    # faster-whisper model: base.en ~0.3 s per utterance on an M2,
-                         # small.en hears a little better but takes ~1 s
+STT_MODEL = "base.en"    # faster-whisper model: base.en ~0.3 s per utterance on an Apple
+                         # Silicon Mac, small.en hears a little better but takes ~1 s
+# The Hugging Face commit of that model to download (Systran/faster-whisper-<STT_MODEL>).
+# Pinned so a changed upload can't be loaded unnoticed; set to None to take the latest.
+STT_REVISION = "3d3d5dee26484f91867d81cb899cfcf72b96be6c"
 STT_THREADS = 8          # CPU threads for transcription (0 = library default of 4)
 STT_PROMPT = f"Hey {ROBOT_NAME}. {ROBOT_NAME} is a robot."  # name hint for the model
 MIC_SOURCE = "auto"      # "robot" = the robot's mic, "mac" = MIC_DEVICE below,
                          # "auto" = robot when it's connected, else the Mac
-MIC_DEVICE = "Scarlett Solo USB"  # None = system default. List devices: python -m sounddevice
+MIC_DEVICE = os.environ.get("MIC_DEVICE") or None  # Mac input by name (set MIC_DEVICE in
+                         # server/.env); None = system default. List devices: python -m sounddevice
 # Speech detection (server/brain/turn.py). A Silero VAD model decides whether
 # each 32 ms chunk is speech (VAD_THRESHOLD, 0..1: lower = more sensitive).
 # Once speech starts, a cutoff 0.15 lower keeps softer syllables from being
@@ -121,9 +136,10 @@ CANCEL_MIN_SPEECH = 0.3
 DEBUG_SAVE_UTTERANCE = ""  # set to "debug/last_utterance.wav" to keep the last thing heard, for mic tuning
 AWAKE_SECONDS = 60.0     # after "hey Rocky" he stays awake; each thing you say
                          # resets this clock, and when it runs out he dozes off
-SLEEP_PHRASES = [        # any of these puts him to sleep until the next "hey Rocky"
-    "rocky sleep",
-    "rocky go to sleep",
+_NAME = ROBOT_NAME.lower()
+SLEEP_PHRASES = [        # any of these puts him to sleep until the next "hey <name>"
+    f"{_NAME} sleep",
+    f"{_NAME} go to sleep",
     "go to sleep",
     "goodnight",
     "good night",
@@ -142,7 +158,7 @@ EMOTIONS = [
     "thinking",
 ]
 
-# Camera (M5). The robot streams small JPEGs while connected; the live view
+# Camera. The robot streams small JPEGs while connected; the live view
 # is at http://localhost:<LIVE_VIEW_PORT>/ on the Mac.
 CAMERA_FPS = 10
 LIVE_VIEW_PORT = 8766
@@ -162,7 +178,7 @@ CAMERA_WORDS = [
     "read the", "read what",
 ]
 
-# Face tracking (M5): the head follows the biggest face in the picture.
+# Face tracking: the head follows the biggest face in the picture.
 # Off until you ask ("Rocky, track me"); phrases below switch it without a
 # brain call, and Rocky can also switch it himself when asked in other words.
 TRACKING = False

@@ -38,7 +38,7 @@ printed on the board:
    flashing and face-only testing, but use a wall supply once the servo
    and speaker are in play.
 
-## Milestone 1 hookup (OLED + both servos)
+## OLED and servos
 
 | From | To |
 |---|---|
@@ -62,14 +62,16 @@ Power it up: the eyes should open with a blink and start looking around.
 If the OLED stays black, the usual suspects are swapped SDA/SCL or a loose
 jumper. Then check the head's manners:
 
-- If tilt nods the wrong way (`tilt 20` should look **up**), set
-  `TILT_INVERT = true` in `firmware/include/config.h` and re-flash.
+- If tilt nods the wrong way (`tilt -20` should look **down**), flip
+  `TILT_INVERT` in `firmware/include/config.h` and re-flash. Tilt only goes
+  from eye level (0) down to -60 on this mount: the platform hits the pan
+  servo if it tries to look up.
 - If the head isn't level/straight at `center`, adjust `TILT_TRIM_DEG` /
   `PAN_TRIM_DEG` a few degrees at a time.
 - If the tilt bracket strains or buzzes at the ends of its travel, pull
   `TILT_MIN_DEG` / `TILT_MAX_DEG` in until it stops.
 
-## Milestone 3 hookup (add the amp + speaker)
+## Amp and speaker
 
 | From | To |
 |---|---|

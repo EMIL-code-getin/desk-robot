@@ -4,7 +4,7 @@
 #include <WebSocketsClient.h>
 #include <functional>
 
-// Link: WiFi + a WebSocket to the brain server (Milestone 2).
+// Link: WiFi + a WebSocket to the brain server.
 //
 // Joins WiFi, connects to ws://<host>:<port>, reconnects on its own, and
 // turns the server's JSON commands (docs/protocol.md) into the same text

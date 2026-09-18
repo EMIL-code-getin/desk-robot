@@ -1,3 +1,7 @@
+> Historical working notes from 2026-09-07, kept for reference. Line numbers
+> and some file names have drifted since; the current mic settings are in
+> `server/brain/config.py` and the README's troubleshooting section.
+
 # Rocky microphone investigation — 2026-09-07
 
 Software tuning is worth testing before replacing the microphone. The review

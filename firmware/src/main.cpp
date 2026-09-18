@@ -1,5 +1,5 @@
-// desk-robot firmware — Milestone 5: an expressive face, a turning head, a
-// speaker, a microphone, and a camera. Driven over USB serial (115200 baud,
+// desk-robot firmware: an expressive face, a turning head, a speaker, a
+// microphone, and a camera. Driven over USB serial (115200 baud,
 // type `help`) and, when include/secrets.h exists, over WiFi by the brain.
 
 #include <Arduino.h>

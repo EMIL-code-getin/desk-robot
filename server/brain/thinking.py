@@ -1,9 +1,10 @@
 """Thinking: sends a question (and the newest camera frame) to the language
-model via OpenRouter and hands back what Rocky should say and feel, one
-sentence at a time as the model writes it.
+model and hands back what Rocky should say and feel, one sentence at a time
+as the model writes it.
 
-OpenRouter (openrouter.ai) fronts many models behind one key using the
-OpenAI-style chat API, so the model is just a string in config.py.
+The request is the OpenAI-style chat API, which OpenRouter, Anthropic and
+OpenAI all serve, so the provider is a base URL and the model is a string
+(config.LLM_BASE_URL / config.MODEL; the key is LLM_API_KEY in server/.env).
 
 Rocky has two real abilities the model can call (tool use): `look` moves
 the head and comes back with a fresh camera frame from the new angle, and
@@ -101,9 +102,9 @@ def _image_part(jpeg: bytes) -> dict:
 class RobotBrain:
     def __init__(self, actions: dict[str, Action] | None = None) -> None:
         self.client = openai.OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=os.environ.get("OPENROUTER_API_KEY", "missing"),
-            default_headers={"X-Title": "desk-robot"},  # shows up in OpenRouter's usage page
+            base_url=config.LLM_BASE_URL,
+            api_key=os.environ.get("LLM_API_KEY", "missing"),
+            default_headers={"X-Title": "desk-robot"},  # shows up in OpenRouter's usage page; others ignore it
         )
         self.history: list[dict] = []
         self.actions = actions or {}
@@ -159,7 +160,7 @@ class RobotBrain:
         except openai.APIConnectionError:
             error = ("Brain cannot reach internet. Bad bad bad.", "sad")
         except openai.AuthenticationError:
-            error = ("Brain has no key. Set OPENROUTER_API_KEY, human.", "sad")
+            error = ("Brain has no key. Set LLM_API_KEY, human.", "sad")
         except openai.APIStatusError as e:
             error = (f"Ow. Brain hurts. API error {e.status_code}.", "sad")
         finally:

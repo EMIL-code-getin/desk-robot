@@ -4,13 +4,13 @@
 // Silkscreen label → GPIO number. The camera, PDM mic, and SD slot on the
 // Sense expansion board use their own internal pins and don't appear here.
 //
-//   D0  = GPIO1   I2S BCLK  → MAX98357A BCLK      (M3, speaker)
-//   D1  = GPIO2   I2S LRC   → MAX98357A LRC       (M3, speaker)
-//   D2  = GPIO3   I2S DIN   → MAX98357A DIN       (M3, speaker)
+//   D0  = GPIO1   I2S BCLK  → MAX98357A BCLK      (speaker)
+//   D1  = GPIO2   I2S LRC   → MAX98357A LRC       (speaker)
+//   D2  = GPIO3   I2S DIN   → MAX98357A DIN       (speaker)
 //   D3  = GPIO4   pan servo signal (orange wire)
 //   D4  = GPIO5   I2C SDA   → OLED SDA
 //   D5  = GPIO6   I2C SCL   → OLED SCL
-//   D6  = GPIO43  tilt servo signal               (M6, reserved)
+//   D6  = GPIO43  tilt servo signal (orange wire)
 //   D7  = GPIO44  spare
 
 constexpr uint8_t PIN_SERVO_PAN = 4;   // D3
@@ -35,8 +35,8 @@ constexpr float TILT_MIN_DEG = -60.0f;  // look-down limit
 constexpr float TILT_MAX_DEG = 0.0f;    // look-up limit (eye level is the mechanical stop)
 constexpr float TILT_MAX_SPEED = 120.0f;
 constexpr float TILT_TRIM_DEG = 0.0f;   // tweak so the head sits level at 0
-constexpr bool TILT_INVERT = true;      // verified with the camera 2026-09-06: with false,
-                                        // "down" drove the head UP into its stop
+constexpr bool TILT_INVERT = true;      // flip if `tilt -20` looks up instead of down
+                                        // (true on the Adafruit pan-tilt with the OLED facing forward)
 
 // Watch the mechanism the first time tilt moves: if the bracket strains at
 // either end of travel, pull TILT_MIN/MAX in until it stops.

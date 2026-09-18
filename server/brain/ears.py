@@ -198,7 +198,8 @@ class Transcriber:
         from faster_whisper import WhisperModel  # slow import, keep it lazy
 
         self.model = WhisperModel(
-            model_name, device="cpu", compute_type="int8", cpu_threads=config.STT_THREADS
+            model_name, device="cpu", compute_type="int8", cpu_threads=config.STT_THREADS,
+            revision=config.STT_REVISION if model_name == config.STT_MODEL else None,
         )
 
     def transcribe(self, audio: np.ndarray) -> str:
@@ -325,7 +326,7 @@ class Ears:
         try:
             import sounddevice as sd
 
-            # Open every input the device has (a Scarlett has two) and mix them,
+            # Open every input the device has (a USB interface often has two) and mix them,
             # so it doesn't matter which jack the mic is plugged into.
             channels = max(1, int(sd.query_devices(self.device, "input")["max_input_channels"]))
             self._stream = sd.InputStream(

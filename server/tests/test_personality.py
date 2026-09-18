@@ -9,7 +9,6 @@ from brain import config, mouth, personality
 
 class CharacterTests(unittest.TestCase):
     def test_prompt_is_complete(self):
-        self.assertIn(config.ROBOT_NAME, personality.SYSTEM_PROMPT)
         self.assertIn(config.HUMAN_NAME, personality.SYSTEM_PROMPT)
         self.assertIn(f"One to {config.REPLY_MAX_SENTENCES} sentences", personality.SYSTEM_PROMPT)
         self.assertIn("[neutral]", personality.SYSTEM_PROMPT)

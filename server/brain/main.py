@@ -3,11 +3,11 @@
 Run with:  python -m brain.main   (from the server/ directory, venv active)
 
 Three jobs:
-  1. WebSocket server the robot connects to over WiFi (Milestone 2+).
+  1. WebSocket server the robot connects to over WiFi.
   2. An interactive console so you can talk to the brain and puppet the
      robot from your keyboard right now.
   3. Listening: hears "hey Rocky" on the mic, sends what you say to
-     Claude, and speaks the reply through the robot (or the Mac).
+     the language model, and speaks the reply through the robot (or the Mac).
 
 A reply is a pipeline, not a wait: the model's words stream in, each
 finished sentence goes to the voice as soon as it exists, and the voice's
@@ -124,7 +124,8 @@ async def handle_robot(websocket: websockets.ServerConnection) -> None:
         print("(refusing robot: set ROBOT_TOKEN in server/.env and firmware/include/secrets.h)")
         await websocket.close(1008)
         return
-    if hello.get("type") != "hello" or not secrets.compare_digest(str(hello.get("token", "")), expected):
+    offered = str(hello.get("token", "")).encode()  # bytes: compare_digest rejects non-ASCII str
+    if hello.get("type") != "hello" or not secrets.compare_digest(offered, expected.encode()):
         print(f"(refused a connection from {peer}: bad or missing token)")
         await websocket.close(1008)
         return
@@ -161,7 +162,10 @@ async def handle_robot(websocket: websockets.ServerConnection) -> None:
                 robot_speak_done.set()
                 continue
             if event.get("type") == "temp":
-                eyes.temperature = event.get("c")
+                try:
+                    eyes.temperature = float(event.get("c"))
+                except (TypeError, ValueError):
+                    pass  # not a number; leave the last reading
                 continue
             print(f"robot: {event}")
     except websockets.ConnectionClosed:
@@ -226,7 +230,7 @@ async def handle_console_line(line: str) -> bool:
         except ValueError:
             print("usage: volume <0.0-1.0>")
     else:
-        print("commands: ask <q> | say <text> | volume <0-1> | listen | mic | emo <name> | pan <deg> | tilt <deg> | status | quit")
+        print("commands: ask <q> | say <text> | volume <0-1> | listen | mic | track on|off | emo <name> | pan <deg> | tilt <deg> | status | quit")
     return True
 
 
@@ -745,11 +749,11 @@ async def start_listening() -> None:
         ears = None
         print(f"(could not start listening: {e})")
         print("  check: mic plugged in? Terminal allowed to use the microphone in")
-        print("  System Settings > Privacy & Security > Microphone? MIC_DEVICE in config.py?")
+        print("  System Settings > Privacy & Security > Microphone? MIC_DEVICE in server/.env?")
         return
     if ears.mac_error:
         print(f"(Mac mic unavailable: {ears.mac_error})")
-        print("  the robot's mic still works; for a Mac fallback check MIC_DEVICE in config.py,")
+        print("  the robot's mic still works; for a Mac fallback check MIC_DEVICE in server/.env,")
         print("  plug the interface in, or allow the Terminal to use the microphone")
     else:
         print(f"listening on \"{mic}\" — say \"hey {config.ROBOT_NAME}\"")
@@ -916,7 +920,7 @@ async def main() -> None:
     tracker = Tracker(eyes, lambda p, t, on: loop.call_soon_threadsafe(head_moves.put_nowait, (p, t, on)))
     eyes.has_annotator = True
     tracker.start()
-    print("face tracking:", "on" if config.TRACKING else "off — say \"Rocky, track me\" or type `track on`")
+    print("face tracking:", "on" if config.TRACKING else f"off — say \"{config.ROBOT_NAME}, track me\" or type `track on`")
     print("type `ask <question>` to talk to the brain right now\n")
     async with websockets.serve(handle_robot, "0.0.0.0", config.PORT, max_size=256 * 1024):
         voice_task = asyncio.create_task(voice_loop())

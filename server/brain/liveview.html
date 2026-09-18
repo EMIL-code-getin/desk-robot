@@ -4,9 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{name} · live</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta name="referrer" content="no-referrer">
 <style>
   :root {
     --void: #06080d;
@@ -19,9 +17,10 @@
     --astro-glow: rgba(255, 74, 61, .35);
     --amber: #f2b45c;          /* warm hull light: Rocky's side of things */
     --amber-dim: rgba(242, 180, 92, .18);
-    --display: "Michroma", "Avenir Next", "Helvetica Neue", sans-serif;
-    --body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
-    --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+    /* System fonts only: the page makes no requests beyond this Mac. */
+    --display: "Avenir Next", "Helvetica Neue", sans-serif;
+    --body: "Helvetica Neue", Arial, sans-serif;
+    --mono: "SF Mono", Menlo, monospace;
   }
   * { box-sizing: border-box; }
   html { color-scheme: dark; }

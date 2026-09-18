@@ -77,7 +77,7 @@ class Eyes:
             return self.display_seq
 
     def latest(self, max_age: float = 2.0) -> bytes | None:
-        """The newest frame if it's recent enough to be worth showing Claude."""
+        """The newest frame if it's recent enough to be worth showing the model."""
         if self.jpeg and time.time() - self.frame_at <= max_age:
             return self.jpeg
         return None
@@ -131,8 +131,8 @@ class Eyes:
                     return
                 try:
                     length = int(self.headers.get("Content-Length") or 0)
-                    if length > 64 * 1024:
-                        raise ValueError("too much")
+                    if not 0 <= length <= 64 * 1024:
+                        raise ValueError("bad content length")
                     payload = json.loads(self.rfile.read(length) or b"{}")
                     if not isinstance(payload, dict):
                         raise ValueError("body must be a JSON object")
@@ -186,6 +186,7 @@ class Eyes:
                 self.send_header("Content-Type", ctype)
                 self.send_header("Content-Length", str(len(body)))
                 self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")  # robot-supplied bytes stay images
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -193,6 +194,7 @@ class Eyes:
                 self.send_response(200)
                 self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
                 self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")
                 self.end_headers()
                 seq = -1
                 try:
