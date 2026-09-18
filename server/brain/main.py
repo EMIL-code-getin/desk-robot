@@ -748,8 +748,8 @@ async def start_listening() -> None:
     except Exception as e:
         ears = None
         print(f"(could not start listening: {e})")
-        print("  check: mic plugged in? Terminal allowed to use the microphone in")
-        print("  System Settings > Privacy & Security > Microphone? MIC_DEVICE in server/.env?")
+        print("  check: mic plugged in? Is your terminal allowed to use the microphone (macOS:")
+        print("  System Settings > Privacy & Security > Microphone)? MIC_DEVICE in server/.env?")
         return
     if ears.mac_error:
         print(f"(Mac mic unavailable: {ears.mac_error})")
@@ -910,7 +910,7 @@ async def main() -> None:
     eyes.state_provider = console_state
     eyes.command_handler = console_command
     eyes.serve(config.LIVE_VIEW_PORT, config.LIVE_VIEW_BIND)
-    print(f"live view + controls: http://localhost:{config.LIVE_VIEW_PORT}/  (this Mac only)")
+    print(f"live view + controls: http://localhost:{config.LIVE_VIEW_PORT}/  (this computer only)")
     if not os.environ.get("ROBOT_TOKEN"):
         print("WARNING: ROBOT_TOKEN is not set in server/.env — the robot will be refused")
     global tracker, brain, main_loop

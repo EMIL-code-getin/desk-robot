@@ -5,12 +5,14 @@ Two voices:
     FISH_AUDIO_API_KEY is set. Plain HTTPS POST asking for raw 16 kHz PCM. The response body
     streams, so the first audio arrives ~0.3 s in, long before the sentence
     is finished, and is passed straight on to the speaker.
-  * macOS `say` as the fallback so the loop is audible before that's set up.
+  * the computer's built-in voice as the fallback so the loop is audible
+    before that's set up: `say` on macOS, Windows' speech engine through
+    PowerShell, espeak-ng on Linux.
 
 `stream(text)` yields 16 kHz mono s16le PCM chunks — the exact format the
 robot's speaker expects (docs/protocol.md) — as they're produced.
 `synthesize()` is the same joined into one buffer; `play()` plays a buffer
-on the Mac.
+on this computer.
 """
 
 from __future__ import annotations
@@ -20,7 +22,9 @@ import json
 import os
 import re
 import ssl
+import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.request
@@ -248,29 +252,49 @@ def _wav_to_pcm16k(wav_bytes: bytes) -> bytes:
     return (np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes()
 
 
-def _synthesize_say(text: str) -> bytes:
-    """macOS built-in voice, written straight to 16 kHz s16le WAV."""
+class NoBuiltinVoice(RuntimeError):
+    """This computer has no speech engine we know how to drive."""
+
+
+# PowerShell script for Windows' built-in speech engine: text on stdin,
+# 16 kHz mono WAV out. Built and tested on macOS; this path is untested.
+_WINDOWS_TTS = """
+Add-Type -AssemblyName System.Speech
+$fmt = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(16000, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono)
+$s = New-Object System.Speech.Synthesis.SpeechSynthesizer
+$s.SetOutputToWaveFile($args[0], $fmt)
+$s.Speak([Console]::In.ReadToEnd())
+$s.Dispose()
+"""
+
+
+def _synthesize_builtin(text: str) -> bytes:
+    """The computer's own voice as 16 kHz s16le PCM. Text always goes in on
+    stdin, never as an argument, so a reply starting with "-" can't turn
+    into options ("-f /etc/hosts" would make `say` read a file)."""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         path = f.name
     try:
-        # Text goes in on stdin, never as an argument: `say` would treat a
-        # reply starting with "-" as options ("-f /etc/hosts" reads a file).
-        subprocess.run(
-            ["say", "-v", config.TTS_FALLBACK_VOICE, "-o", path, "--data-format=LEI16@16000"],
-            input=text.encode(),
-            check=True,
-        )
+        if sys.platform == "darwin":
+            cmd = ["say", "-v", config.TTS_FALLBACK_VOICE, "-o", path, "--data-format=LEI16@16000"]
+        elif sys.platform == "win32":
+            cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", _WINDOWS_TTS, path]
+        elif shutil.which("espeak-ng") or shutil.which("espeak"):
+            cmd = [shutil.which("espeak-ng") or "espeak", "--stdin", "-w", path]
+        else:
+            raise NoBuiltinVoice("no built-in voice on this system (install espeak-ng, or set FISH_AUDIO_API_KEY)")
+        subprocess.run(cmd, input=text.encode(), check=True, timeout=60)
         with open(path, "rb") as f:
             wav = f.read()
     finally:
         os.unlink(path)
-    return wav[44:]  # skip the 44-byte WAV header; the rest is raw PCM
+    return _wav_to_pcm16k(wav)
 
 
 def stream(text: str, leveler: Leveler | None = None) -> Iterator[bytes]:
     """Rocky's words as 16 kHz mono s16le PCM chunks, yielded as they're made.
-    Fish Audio when it's set up and reachable, else the Mac's own voice (all
-    at once). Loudness is steadied by `leveler` (a fresh one if none is
+    Fish Audio when it's set up and reachable, else the computer's own voice
+    (all at once). Loudness is steadied by `leveler` (a fresh one if none is
     given). A saved copy goes to debug/tts/ when DEBUG_SAVE_TTS is on."""
     text = clean_for_tts(text)
     if not text:
@@ -286,10 +310,14 @@ def stream(text: str, leveler: Leveler | None = None) -> Iterator[bytes]:
                 chunks = _fish_stream(text)
                 first = next(chunks, b"")
             except Exception as e:  # network, auth, bad voice id... still speak
-                print(f"(fish audio failed, using Mac voice: {e})")
+                print(f"(fish audio failed, using the built-in voice: {e})")
                 chunks = None
         if chunks is None:
-            first = _synthesize_say(text)
+            try:
+                first = _synthesize_builtin(text)
+            except NoBuiltinVoice as e:
+                print(f"(cannot speak: {e})")
+                return
         if first:
             first = leveler.process(first)
             parts.append(first)
@@ -336,7 +364,7 @@ def _save_clip(pcm: bytes, text: str) -> None:
 
 def normalize(pcm: bytes, peak: float = 0.95) -> bytes:
     """Scale so the loudest sample hits `peak` of full scale. Used for the
-    Mac fallback voice, which arrives all at once."""
+    built-in fallback voice, which arrives all at once."""
     samples = np.frombuffer(pcm, dtype=np.int16).astype(np.float32)
     top = float(np.abs(samples).max()) if len(samples) else 0.0
     if top < 1:
@@ -345,12 +373,17 @@ def normalize(pcm: bytes, peak: float = 0.95) -> bytes:
 
 
 def play(pcm: bytes) -> None:
-    """Play PCM on the Mac's default output. Blocks until done.
+    """Play PCM on this computer's default output. Blocks until done.
 
-    Uses macOS's own player rather than sounddevice: opening an output stream
-    while the mic stream is running trips CoreAudio ("cannot do in current
-    context") and can hang. afplay is a separate process, so it can't."""
+    On macOS this uses the system player rather than sounddevice: opening an
+    output stream while the mic stream is running trips CoreAudio ("cannot
+    do in current context") and can hang, and afplay is a separate process
+    so it can't. Elsewhere sounddevice plays it directly (untested here)."""
     if not pcm:
+        return
+    if sys.platform != "darwin":
+        import sounddevice as sd
+        sd.play(np.frombuffer(pcm, dtype=np.int16), SAMPLE_RATE, blocking=True)
         return
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         path = f.name
@@ -366,7 +399,7 @@ def play(pcm: bytes) -> None:
 
 
 def speak(text: str) -> bytes:
-    """Synthesize and play on the Mac; returns the PCM for the robot too."""
+    """Synthesize and play on this computer; returns the PCM for the robot too."""
     pcm = synthesize(text)
     play(pcm)
     return pcm

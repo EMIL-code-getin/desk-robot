@@ -3,7 +3,7 @@
 A small desk robot with a face, a voice, and a camera. Say "hey Rocky" and it
 turns its head, looks at you, and answers out loud in character. The body is
 a $24 microcontroller with an OLED screen on a pan-tilt neck. The brain is a
-Python program on your Mac that does speech-to-text, asks a language model,
+Python program on your computer that does speech-to-text, asks a language model,
 and speaks the reply through the robot's speaker.
 
 <!-- photo or short clip goes here: docs/rocky.jpg -->
@@ -30,7 +30,7 @@ See [Make it your own](#make-it-your-own).
 └───────────────────────────┬───────────────────────────────────┘
                             │ WiFi (WebSocket)
 ┌───────────────────────────┴───────────────────────────────────┐
-│  brain server (Python, on your Mac)                           │
+│  brain server (Python, on your computer)                      │
 │  wake word → speech-to-text → language model → text-to-speech │
 │  plus face tracking, emotions, and head movements             │
 └───────────────────────────────────────────────────────────────┘
@@ -45,7 +45,7 @@ Nothing is billed while the robot is idle.
 1. [What you need](#what-you-need)
 2. [Build the body](#build-the-body)
 3. [Flash the firmware and test over USB](#flash-the-firmware-and-test-over-usb)
-4. [Set up the brain on your Mac](#set-up-the-brain-on-your-mac)
+4. [Set up the brain on your computer](#set-up-the-brain-on-your-computer)
 5. [Connect the robot to the brain](#connect-the-robot-to-the-brain)
 6. [Living with Rocky](#living-with-rocky)
 7. [Make it your own](#make-it-your-own)
@@ -70,10 +70,13 @@ one. Everything is a common Amazon or Adafruit item.
 | Breadboard, jumper wires, M2/M2.5 nylon standoffs | For wiring and mounting the screen. |
 | 5 V, 2 A or better USB-C power supply | A laptop port is fine for flashing, not for running servos and speaker. |
 
-**On the Mac side.**
+**On the computer side.**
 
-- A Mac. The server uses macOS for audio playback and the fallback voice, and
-  has only been run on Apple Silicon.
+- A Mac, Windows PC, or Linux machine on the same WiFi as the robot. It was
+  built and tested on an Apple Silicon Mac. Windows and Linux use the same
+  code except for the built-in fallback voice and speaker playback, which
+  have their own paths that nobody has run yet. If you're the first, say how
+  it went. On Linux, install `espeak-ng` for the fallback voice.
 - Python 3.13, which is what this was built and tested with.
 - PlatformIO for flashing the firmware (installed below).
 - A language-model API key. Any one of these works:
@@ -81,7 +84,8 @@ one. Everything is a common Amazon or Adafruit item.
   - **Anthropic**: use a Claude model directly.
   - **OpenAI**: use a GPT model directly.
 - Optionally a **Fish Audio** key for the cloned voice. Without it Rocky
-  speaks with the Mac's built-in voice, which is fine for getting started.
+  speaks with your computer's built-in voice, which is fine for getting
+  started.
 
 **Skills.** Basic soldering (about 27 joints, all through-hole), and the
 patience to read the wiring guide before powering anything on.
@@ -143,17 +147,17 @@ Do this before WiFi. It proves the face and the neck work.
 Without a `secrets.h` file the firmware stays in this USB-only mode, which
 is useful whenever you want to test the body alone.
 
-## Set up the brain on your Mac
+## Set up the brain on your computer
 
-The brain works without the robot: it uses the Mac's microphone and speaker
-until the robot connects. Get it talking first.
+The brain works without the robot: it uses your computer's microphone and
+speaker until the robot connects. Get it talking first.
 
 ```bash
 cd server
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env               # Windows: copy .env.example .env
 ```
 
 Open `server/.env` and fill in:
@@ -174,27 +178,30 @@ python -m brain.main
 The first run downloads about 160 MB of speech models into `~/.cache`
 (Whisper from Hugging Face, the two turn-detection models from GitHub and
 Hugging Face, all pinned to a fixed version). macOS will ask once to let
-your terminal use the microphone. Say **"hey Rocky, what is a
-weekend?"** and he should answer through the Mac's speaker. You can also
-type `ask what is a weekend?` into the server console.
+your terminal use the microphone; on Windows, check that microphone access
+for desktop apps is on in Privacy settings. Say **"hey Rocky, what is a
+weekend?"** and he should answer through your computer's speaker. You can
+also type `ask what is a weekend?` into the server console.
 
 The live view at <http://localhost:8766/> is Rocky's console: what he sees,
 what he hears, the last exchange, and controls for his head, face, voice,
-sleep, and listening. It only answers this Mac.
+sleep, and listening. It only answers this computer.
 
 ## Connect the robot to the brain
 
-1. Find the Mac's address on your WiFi:
+1. Find your computer's address on your WiFi:
 
    ```bash
-   ipconfig getifaddr en0
+   ipconfig getifaddr en0     # macOS
+   ipconfig                   # Windows: the IPv4 address of your WiFi adapter
+   hostname -I                # Linux
    ```
 
-   Your router can usually pin the Mac to a fixed address so this does not
-   change.
+   Your router can usually pin the computer to a fixed address so this does
+   not change.
 
 2. Copy `firmware/include/secrets.h.example` to `secrets.h` in the same
-   folder and fill in your WiFi name and password, the Mac's address, and
+   folder and fill in your WiFi name and password, that address, and
    the same `ROBOT_TOKEN` you put in `server/.env`. The ESP32 only sees
    **2.4 GHz** networks.
 
@@ -203,8 +210,8 @@ sleep, and listening. It only answers this Mac.
 
 From then on the server listens through the robot's microphone and speaks
 through the robot's speaker whenever the robot is connected, and falls back
-to the Mac when it is not. The robot can now live on a wall supply away from
-the Mac.
+to your computer when it is not. The robot can now live on a wall supply
+away from the computer.
 
 ## Living with Rocky
 
@@ -279,8 +286,9 @@ disappear one day, and it is for personal use. Open any voice's page there,
 copy the 32-character ID from the URL into `TTS_VOICE_ID` in `config.py`,
 and put your Fish key in `server/.env`.
 `TTS_TEMPERATURE` and `TTS_TOP_P` trade steadiness for expressiveness.
-Without a Fish key, `TTS_FALLBACK_VOICE` picks one of the Mac's built-in
-voices (`say -v ?` lists them).
+Without a Fish key he uses the computer's built-in voice: on macOS,
+`TTS_FALLBACK_VOICE` picks one (`say -v ?` lists them); Windows uses its
+default voice; Linux uses `espeak-ng` if installed.
 
 The robot's speaker is tiny, so a deep voice turns into rattle. Three knobs
 in `config.py` shape the audio before it reaches the speaker: `TTS_LEVEL`
@@ -319,7 +327,7 @@ Also in `config.py`: `VAD_THRESHOLD` (how loud counts as speech),
 are done, and how long he will wait), `AWAKE_SECONDS` (how long he stays
 awake after you speak), `STT_MODEL` (`base.en` is fast; `small.en` hears
 better and takes about a second longer), and `MIC_DEVICE` in `.env` if the
-Mac should use a specific microphone. The console page has sliders for the
+computer should use a specific microphone. The console page has sliders for the
 listening knobs; changes apply immediately and last until restart.
 
 ### Change the body
@@ -338,16 +346,20 @@ different panel. The expressions themselves are drawn in `face.cpp`.
   not clipped on. Make a 2.4 GHz network or band.
 - **The robot prints `brain: connected` then `brain: disconnected, will
   retry` every few seconds.** `ROBOT_TOKEN` differs between `server/.env`
-  and `secrets.h`. The Mac's console shows the refusal. If it never gets to
-  `brain: connected`, the Mac's address changed or the server is not
-  running.
-- **He never hears you on the Mac.** Check System Settings, Privacy &
-  Security, Microphone for your terminal. Run `mic` in the server console
+  and `secrets.h`. The server console shows the refusal. If it never gets
+  to `brain: connected`, the computer's address changed or the server is
+  not running.
+- **He never hears you on the computer.** On macOS, check System Settings,
+  Privacy & Security, Microphone for your terminal; on Windows, the
+  microphone privacy setting for desktop apps. Run `mic` in the server console
   for a level meter. If you have several inputs, set `MIC_DEVICE` in `.env`.
 - **"Brain has no key."** `LLM_API_KEY` is empty, or belongs to a different
   provider than `LLM_BASE_URL`.
-- **He answers in the Mac's voice.** `FISH_AUDIO_API_KEY` is missing or the
-  voice ID is wrong. Fine for testing; set it when you want the real voice.
+- **He answers in the computer's voice.** `FISH_AUDIO_API_KEY` is missing
+  or the voice ID is wrong. Fine for testing; set it when you want the real
+  voice.
+- **"cannot speak: no built-in voice on this system."** Linux without
+  `espeak-ng`. Install it, or set a Fish key.
 - **The voice rattles or sounds muffled.** Use the speaker-tuning sliders on
   the console page, then copy the values into `config.py`.
 - **He cuts you off, or waits too long.** Raise `TURN_THRESHOLD` if he jumps
@@ -387,12 +399,12 @@ cd server && python -m unittest tests/test_personality.py tests/test_segmenter.p
 - **Only your robot can talk to the brain.** The WebSocket port is open on
   your LAN, but the first message must carry `ROBOT_TOKEN`. One robot at a
   time.
-- **The camera console is this Mac only** and rejects requests from other
+- **The camera console is this computer only** and rejects requests from other
   hosts. Opening it to the LAN would let anyone on your WiFi watch the
   camera and read transcripts.
 - **Voice is unauthenticated by design.** Anyone in earshot can say "hey
   Rocky". All he can do is move his head and spend a fraction of a cent.
-- **What leaves the Mac:** each question sends the transcript, the recent
+- **What leaves your computer:** each question sends the transcript, the recent
   conversation, your name from `HUMAN_NAME`, and the newest camera frame
   (only for visual questions) to your model provider, and each reply's text
   to Fish Audio if configured. Speech-to-text and face tracking run
@@ -403,8 +415,8 @@ cd server && python -m unittest tests/test_personality.py tests/test_segmenter.p
   you turn on `DEBUG_SAVE_TTS` or `DEBUG_SAVE_UTTERANCE` in `config.py`,
   which keep recent spoken replies or the last thing heard in
   `server/debug/` (git-ignored).
-- **Known limitation:** robot-to-Mac traffic is a plain WebSocket on your
-  home network. Someone already on your WiFi who spoofs the Mac's address
+- **Known limitation:** robot-to-computer traffic is a plain WebSocket on
+  your home network. Someone already on your WiFi who spoofs the computer's address
   could command the robot and receive its streams. Mutual authentication or
   TLS is the fix if that matters to you.
 

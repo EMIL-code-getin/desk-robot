@@ -76,7 +76,8 @@ TTS_HIGHPASS_HZ = 0.0
 TTS_PRESENCE_DB = 0.0
 
 # Text-to-speech. The voice comes from Fish Audio (TTS_VOICE_ID above).
-TTS_FALLBACK_VOICE = "Fred"  # macOS `say` voice used until Fish Audio is set up
+TTS_FALLBACK_VOICE = "Fred"  # built-in voice used until Fish Audio is set up: a macOS `say`
+                             # voice name (`say -v ?` lists them); Windows and Linux use their default
 # Loudness. Fish's level wanders from line to line, so the audio goes through
 # an automatic gain control (mouth.Leveler) that holds it near TTS_LEVEL
 # (RMS, 0..1) using at most TTS_MAX_GAIN of boost, with a soft limiter on
@@ -93,7 +94,7 @@ TTS_MAX_GAIN = 8.0
 DEBUG_SAVE_TTS = False
 DEBUG_TTS_CHECK = False
 
-# Listening. The robot's mic when it is connected, the Mac's otherwise.
+# Listening. The robot's mic when it is connected, the computer's otherwise.
 LISTEN_ON_START = True
 WAKE_PHRASES = [  # what speech-to-text tends to hear for "hey Rocky"
     "hey rocky",
@@ -111,8 +112,8 @@ STT_REVISION = "3d3d5dee26484f91867d81cb899cfcf72b96be6c"
 STT_THREADS = 8          # CPU threads for transcription (0 = library default of 4)
 STT_PROMPT = f"Hey {ROBOT_NAME}. {ROBOT_NAME} is a robot."  # name hint for the model
 MIC_SOURCE = "auto"      # "robot" = the robot's mic, "mac" = MIC_DEVICE below,
-                         # "auto" = robot when it's connected, else the Mac
-MIC_DEVICE = os.environ.get("MIC_DEVICE") or None  # Mac input by name (set MIC_DEVICE in
+                         # "auto" = robot when it's connected, else this computer
+MIC_DEVICE = os.environ.get("MIC_DEVICE") or None  # local input by name (set MIC_DEVICE in
                          # server/.env); None = system default. List devices: python -m sounddevice
 # Speech detection (server/brain/turn.py). A Silero VAD model decides whether
 # each 32 ms chunk is speech (VAD_THRESHOLD, 0..1: lower = more sensitive).
@@ -159,10 +160,10 @@ EMOTIONS = [
 ]
 
 # Camera. The robot streams small JPEGs while connected; the live view
-# is at http://localhost:<LIVE_VIEW_PORT>/ on the Mac.
+# is at http://localhost:<LIVE_VIEW_PORT>/ on this computer.
 CAMERA_FPS = 10
 LIVE_VIEW_PORT = 8766
-LIVE_VIEW_BIND = "127.0.0.1"  # this Mac only. "0.0.0.0" would show the camera to the whole LAN.
+LIVE_VIEW_BIND = "127.0.0.1"  # this computer only. "0.0.0.0" would show the camera to the whole LAN.
 SEND_CAMERA_TO_BRAIN = True  # let Rocky see the camera when a question is about seeing
 # A frame is attached only when the question is about seeing (any of these
 # words or phrases). Everyday words like "this", "that", "here", "there" and
