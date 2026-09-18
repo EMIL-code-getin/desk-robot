@@ -1,8 +1,8 @@
-"""Mouth: turn Rocky's words into sound.
+"""Mouth: turn the robot's words into sound.
 
 Two voices:
-  * Fish Audio (Rocky's real voice) when TTS_VOICE_ID and FISH_AUDIO_API_KEY
-    are set. Plain HTTPS POST asking for raw 16 kHz PCM. The response body
+  * Fish Audio (Rocky's real voice, config.TTS_VOICE_ID) when
+    FISH_AUDIO_API_KEY is set. Plain HTTPS POST asking for raw 16 kHz PCM. The response body
     streams, so the first audio arrives ~0.3 s in, long before the sentence
     is finished, and is passed straight on to the speaker.
   * macOS `say` as the fallback so the loop is audible before that's set up.
@@ -94,6 +94,70 @@ def _fish_stream(text: str) -> Iterator[bytes]:
                 yield chunk
 
 
+class Biquad:
+    """One second-order IIR filter section with streaming state, so a chunk
+    picks up exactly where the last one left off (no clicks at chunk edges)."""
+
+    def __init__(self, b: np.ndarray, a: np.ndarray) -> None:
+        self.b = b / a[0]
+        self.a = a / a[0]
+        self.x1 = self.x2 = self.y1 = self.y2 = 0.0
+
+    @classmethod
+    def highpass(cls, fc: float, sr: int = SAMPLE_RATE, q: float = 0.7071) -> "Biquad":
+        w0 = 2 * np.pi * fc / sr
+        al = np.sin(w0) / (2 * q)
+        c = np.cos(w0)
+        return cls(np.array([(1 + c) / 2, -(1 + c), (1 + c) / 2]), np.array([1 + al, -2 * c, 1 - al]))
+
+    @classmethod
+    def high_shelf(cls, fc: float, gain_db: float, sr: int = SAMPLE_RATE, q: float = 0.7071) -> "Biquad":
+        A = 10 ** (gain_db / 40)
+        w0 = 2 * np.pi * fc / sr
+        al = np.sin(w0) / (2 * q)
+        c = np.cos(w0)
+        s = 2 * np.sqrt(A) * al
+        b = np.array([A * ((A + 1) + (A - 1) * c + s), -2 * A * ((A - 1) + (A + 1) * c), A * ((A + 1) + (A - 1) * c - s)])
+        a = np.array([(A + 1) - (A - 1) * c + s, 2 * ((A - 1) - (A + 1) * c), (A + 1) - (A - 1) * c - s])
+        return cls(b, a)
+
+    def process(self, x: np.ndarray) -> np.ndarray:
+        b0, b1, b2 = self.b
+        _, a1, a2 = self.a
+        x1, x2, y1, y2 = self.x1, self.x2, self.y1, self.y2
+        y = np.empty_like(x)
+        for i, v in enumerate(x.tolist()):
+            o = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+            x2, x1, y2, y1 = x1, v, y1, o
+            y[i] = o
+        self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
+        return y
+
+
+PRESENCE_HZ = 1500.0  # the presence shelf starts here; speech clarity is 1-4 kHz
+
+
+class Equalizer:
+    """Speaker tuning: a bass cut (the small speaker can't
+    reproduce bass, it just rattles the shell) and a presence lift for a
+    voice that comes out muffled. Both off = pass-through."""
+
+    def __init__(self, highpass_hz: float = 0.0, presence_db: float = 0.0) -> None:
+        self.stages: list[Biquad] = []
+        if highpass_hz > 0:
+            # Two stages (4th order, 24 dB/octave): a single one is still
+            # letting half the energy through an octave below the cutoff.
+            self.stages.append(Biquad.highpass(highpass_hz))
+            self.stages.append(Biquad.highpass(highpass_hz))
+        if presence_db != 0:
+            self.stages.append(Biquad.high_shelf(PRESENCE_HZ, presence_db))
+
+    def process(self, x: np.ndarray) -> np.ndarray:
+        for stage in self.stages:
+            x = stage.process(x)
+        return x
+
+
 class Leveler:
     """Streaming automatic gain: holds the voice near a steady loudness.
 
@@ -102,18 +166,23 @@ class Leveler:
     fact. Each chunk (~130 ms) gets a loudness reading; a smoothed estimate
     follows it upward over ~0.3 s and downward over ~1.5 s, ignoring
     near-silence so gaps don't pump up the noise. The gain steers toward
-    TTS_LEVEL / estimate, capped at TTS_MAX_GAIN, and is ramped across each
-    chunk so nothing clicks. The shape inside a chunk (syllables) is kept.
-    Use one Leveler per reply so its sentences match each other."""
+    TTS_LEVEL / estimate, capped at TTS_MAX_GAIN, and is ramped
+    across each chunk so nothing clicks. The shape inside a chunk (syllables)
+    is kept. The equalizer runs first, so the level is judged on
+    what the speaker will actually get. Use one Leveler per reply so its
+    sentences match each other."""
 
     GATE = 0.004        # RMS below this is a gap, not a quiet word
     ATTACK = 0.5        # per chunk: louder than expected → follow fast
     RELEASE = 0.1       # per chunk: quieter than expected → follow slowly
     SQUEEZE = 0.35      # how far each chunk is pulled toward the running level
                         # (0 = only sentence-scale leveling, 1 = flatten every chunk)
-    CEILING = 0.95      # never let a chunk's peak exceed this: no clipping
+    KNEE = 0.6          # above this, peaks are squeezed smoothly toward 1.0 (no clipping)
 
     def __init__(self) -> None:
+        # Read once per reply, so the console's sliders apply from the next one.
+        self.level = config.TTS_LEVEL
+        self.eq = Equalizer(config.TTS_HIGHPASS_HZ, config.TTS_PRESENCE_DB)
         self.env = 0.0      # loudness estimate; 0 = nothing heard yet
         self.gain = 1.0
 
@@ -121,6 +190,7 @@ class Leveler:
         x = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         if not len(x):
             return pcm
+        x = self.eq.process(x).astype(np.float32)
         rms = float(np.sqrt(np.mean(x * x)))
         if rms > self.GATE:
             if self.env == 0.0:
@@ -133,18 +203,26 @@ class Leveler:
             # Judge this chunk by a blend of the running level and its own
             # level: loud bits come down a little, quiet words come up a little.
             judged = self.env * (rms / self.env) ** self.SQUEEZE
-            target = min(config.TTS_MAX_GAIN, max(0.5, config.TTS_LEVEL / judged))
+            target = min(config.TTS_MAX_GAIN, max(0.5, self.level / judged))
         else:
             target = self.gain  # a gap: hold the gain where it is
-        peak = float(np.abs(x).max())
-        if peak > 0:
-            target = min(target, self.CEILING / peak)
         y = x * np.linspace(self.gain, target, len(x), dtype=np.float32)
         self.gain = target
-        top = float(np.abs(y).max())
-        if top > self.CEILING:  # the ramp started above the cap: trim the whole chunk
-            y *= self.CEILING / top
-        return (y * 32767).astype(np.int16).tobytes()
+        return (self._soft_limit(y) * 32767).astype(np.int16).tobytes()
+
+    def _soft_limit(self, y: np.ndarray) -> np.ndarray:
+        """Unity below KNEE; above it, peaks bend smoothly toward 1.0 instead
+        of clipping. Speech peaks are tall next to its average, so this is
+        what lets the average sit at a healthy level without distortion."""
+        a = np.abs(y)
+        over = a > self.KNEE
+        if not over.any():
+            return y
+        room = 1.0 - self.KNEE
+        squeezed = self.KNEE + room * np.tanh((a[over] - self.KNEE) / room)
+        out = y.copy()
+        out[over] = np.sign(y[over]) * squeezed
+        return out
 
 
 def _wav_to_pcm16k(wav_bytes: bytes) -> bytes:
@@ -240,13 +318,14 @@ def _save_clip(pcm: bytes, text: str) -> None:
     try:
         d = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "debug", "tts")
         os.makedirs(d, exist_ok=True)
-        stamp = time.strftime("%H%M%S")
+        stamp = time.strftime("%Y%m%d-%H%M%S")  # date too, or a morning clip sorts "older" than last night's
         path = os.path.join(d, f"{stamp}.wav")
         with wave.open(path, "wb") as w:
             w.setnchannels(1); w.setsampwidth(2); w.setframerate(SAMPLE_RATE); w.writeframes(pcm)
         with open(path[:-4] + ".txt", "w") as f:
             f.write(text + "\n")
-        old = sorted(f for f in os.listdir(d) if f.endswith(".wav"))[:-30]
+        wavs = [f for f in os.listdir(d) if f.endswith(".wav")]
+        old = sorted(wavs, key=lambda f: os.path.getmtime(os.path.join(d, f)))[:-30]
         for f in old:
             for ext in (".wav", ".txt"):
                 try: os.unlink(os.path.join(d, f[:-4] + ext))

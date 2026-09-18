@@ -42,7 +42,7 @@ import time
 
 import websockets
 
-from . import config, mouth
+from . import config, mouth, personality
 from .thinking import Interrupted, RobotBrain
 from .ears import Ears, normalize, strip_wake_word
 from .eyes import Eyes
@@ -70,8 +70,12 @@ TUNABLE = {                 # config knobs the console may change live: (min, ma
     "VAD_THRESHOLD": (0.1, 0.95),
     "TURN_THRESHOLD": (0.1, 0.95),
     "TURN_MAX_SILENCE": (0.5, 6.0),
-    "TTS_LEVEL": (0.04, 0.25),
     "AWAKE_SECONDS": (10.0, 600.0),
+}
+VOICE_TUNABLE = {           # speaker tuning the console may change live (mouth.Leveler reads these per reply)
+    "TTS_LEVEL": (0.08, 0.40),
+    "TTS_HIGHPASS_HZ": (0.0, 600.0),
+    "TTS_PRESENCE_DB": (0.0, 12.0),
 }
 
 
@@ -96,7 +100,10 @@ def pick_mic_source() -> None:
         source = config.MIC_SOURCE
     if source != ears.source:
         ears.set_source(source)
-        print(f"listening through the {'robot' if source == 'robot' else 'Mac'} mic")
+        if source == "mac" and not ears.has_mac_mic:
+            print(f"(no Mac mic: {ears.mac_error} — nothing is listening until the robot connects)")
+        else:
+            print(f"listening through the {'robot' if source == 'robot' else 'Mac'} mic")
 
 
 async def handle_robot(websocket: websockets.ServerConnection) -> None:
@@ -241,7 +248,7 @@ async def look(args: dict) -> tuple[str, bytes | None]:
         deg = amount if amount is not None else 40.0
         pan, move_pan = (-deg if d == "left" else deg), True
     elif d == "down":
-        tilt, move_tilt = -(amount if amount is not None else -config.TRACK_TILT_MIN), True
+        tilt, move_tilt = -(amount if amount is not None else 30.0), True  # a normal glance down; ask for degrees to go further
     elif d == "level":
         tilt, move_tilt = config.TRACK_TILT_MAX, True
     elif d == "center":
@@ -602,6 +609,7 @@ def console_state() -> dict:
         "awake": now < awake_until,
         "awake_for": max(0.0, awake_until - now),
         "emotion": current_emotion,
+        "voice": {k: getattr(config, k) for k in VOICE_TUNABLE},
         "head_held": head_held,
         "tracking_enabled": tracker.enabled if tracker is not None else False,
         "volume": speaker_volume,
@@ -678,6 +686,14 @@ async def _console_command(action: str, payload: dict) -> dict:
         if ears is not None:
             ears.apply_config()
         print(f"console: {key} = {value:g} (until restart; set it in config.py to keep)")
+    elif action == "voice":
+        # Speaker tuning; takes effect on the next reply.
+        key = payload.get("key")
+        if key not in VOICE_TUNABLE:
+            raise ValueError(f"voice settings: {', '.join(VOICE_TUNABLE)}")
+        value = _number(payload, "value", *VOICE_TUNABLE[key])
+        setattr(config, key, value)
+        print(f"console: {key} = {value:g} (until restart; set it in config.py to keep)")
     else:
         raise ValueError(f"no such control: {action}")
     return {}
@@ -731,7 +747,12 @@ async def start_listening() -> None:
         print("  check: mic plugged in? Terminal allowed to use the microphone in")
         print("  System Settings > Privacy & Security > Microphone? MIC_DEVICE in config.py?")
         return
-    print(f"listening on \"{mic}\" — say \"hey {config.ROBOT_NAME}\"")
+    if ears.mac_error:
+        print(f"(Mac mic unavailable: {ears.mac_error})")
+        print("  the robot's mic still works; for a Mac fallback check MIC_DEVICE in config.py,")
+        print("  plug the interface in, or allow the Terminal to use the microphone")
+    else:
+        print(f"listening on \"{mic}\" — say \"hey {config.ROBOT_NAME}\"")
     pick_mic_source()
 
 
@@ -814,25 +835,26 @@ async def _handle_heard(item: tuple[str, float, float, float]) -> None:
     eyes.last_heard = text
     awake_until = time.time() + config.AWAKE_SECONDS  # anything you say keeps him up
     norm = normalize(text)
+    lines = personality.LINES
     if any(p in norm for p in config.TRACK_ON_PHRASES) and not any(p in norm for p in config.TRACK_OFF_PHRASES):
         await set_tracking(True)
-        print(f"{config.ROBOT_NAME} [happy]: {config.TRACK_ON_LINE}")
+        print(f"{config.ROBOT_NAME} [happy]: {lines['track_on']}")
         await send_to_robot({"type": "emotion", "name": "happy"})
-        await say(config.TRACK_ON_LINE)
+        await say(lines["track_on"])
         return
     if any(p in norm for p in config.TRACK_OFF_PHRASES):
         await set_tracking(False)
-        print(f"{config.ROBOT_NAME} [neutral]: {config.TRACK_OFF_LINE}")
+        print(f"{config.ROBOT_NAME} [neutral]: {lines['track_off']}")
         await send_to_robot({"type": "emotion", "name": "neutral"})
-        await say(config.TRACK_OFF_LINE)
+        await say(lines["track_off"])
         return
     if any(p in norm for p in config.SLEEP_PHRASES):
         # "Rocky, sleep": goodnight line, sleepy face, and only "hey Rocky"
         # wakes him. No brain call.
         awake_until = 0.0
-        print(f"{config.ROBOT_NAME} [sleepy]: {config.SLEEP_LINE}")
+        print(f"{config.ROBOT_NAME} [sleepy]: {lines['sleep']}")
         await send_to_robot({"type": "emotion", "name": "sleepy"})
-        await say(config.SLEEP_LINE)
+        await say(lines["sleep"])
         await send_to_robot({"type": "asleep", "on": True})
         awake_until = 0.0  # say() doesn't touch it, but be explicit
         return
@@ -847,7 +869,7 @@ async def _handle_heard(item: tuple[str, float, float, float]) -> None:
                 tracker.note_pose(tilt=0)
     if woke and not question:
         # Just "hey Rocky" — wait for the actual question.
-        await say("Question?")
+        await say(lines["wake"])
         awake_until = time.time() + config.AWAKE_SECONDS
         return
     finished = await converse(question, ended_at, heard_at)

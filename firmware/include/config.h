@@ -29,9 +29,9 @@ constexpr float PAN_MAX_DEG = 60.0f;  // head turn limit, right
 constexpr float PAN_MAX_SPEED = 180.0f; // deg/sec ceiling — keeps motion gentle
 constexpr float PAN_TRIM_DEG = 0.0f;    // tweak if the head isn't straight at 0
 
-// Casey's build: the tilt platform hits the pan servo body if it tries to
+// The reference build: the tilt platform hits the pan servo body if it tries to
 // look above eye level, so 0 (eye level) is the ceiling and it only nods down.
-constexpr float TILT_MIN_DEG = -30.0f;  // look-down limit
+constexpr float TILT_MIN_DEG = -60.0f;  // look-down limit
 constexpr float TILT_MAX_DEG = 0.0f;    // look-up limit (eye level is the mechanical stop)
 constexpr float TILT_MAX_SPEED = 120.0f;
 constexpr float TILT_TRIM_DEG = 0.0f;   // tweak so the head sits level at 0

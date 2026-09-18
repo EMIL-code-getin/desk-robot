@@ -24,7 +24,7 @@ from dataclasses import dataclass
 import openai
 
 from . import config
-from .personality import SYSTEM_PROMPT
+from . import personality
 
 _EMOTION_TAG = re.compile(r"^\s*\[(\w+)\]\s*", re.S)
 # A sentence ends at . ! or ? followed by a space — but not at an ellipsis:
@@ -61,7 +61,7 @@ TOOLS = [
                     },
                     "degrees": {
                         "type": "number",
-                        "description": "How far: 5-60 for left/right, 5-30 for down. Omit for a normal look.",
+                        "description": "How far: 5-60 for left/right, 5-60 for down. Omit for a normal look.",
                     },
                 },
                 "required": ["direction"],
@@ -197,13 +197,14 @@ class RobotBrain:
         """One question, possibly several model calls if it uses its abilities.
         Yields sentences as they complete."""
         nudged = False
+        limit = config.REPLY_MAX_SENTENCES
         for _ in range(5):
             if cancelled.is_set():
                 raise Interrupted()
             stream = self.client.chat.completions.create(
                 model=config.MODEL,
                 max_tokens=200,  # backstop; the sentence limit does the real work
-                messages=[{"role": "system", "content": SYSTEM_PROMPT}, *self.history],
+                messages=[{"role": "system", "content": personality.SYSTEM_PROMPT}, *self.history],
                 tools=TOOLS if self.actions else openai.NOT_GIVEN,
                 stream=True,
             )
@@ -244,11 +245,11 @@ class RobotBrain:
                         if s:
                             spoken += 1
                             yield s
-                        if spoken >= config.REPLY_MAX_SENTENCES:
+                        if spoken >= limit:
                             break
                     buf = parts[-1] if parts else ""
-                    if spoken >= config.REPLY_MAX_SENTENCES:
-                        print(f"  (trimmed reply to {config.REPLY_MAX_SENTENCES} sentences)")
+                    if spoken >= limit:
+                        print(f"  (trimmed reply to {limit} sentences)")
                         buf = ""
                         break
             finally:
@@ -308,7 +309,7 @@ class RobotBrain:
             if nudged and self.history and self.history[-1].get("role") == "user":
                 self.history.pop()  # don't keep the nudge in the transcript
             tail = buf.strip()
-            if tail and spoken < config.REPLY_MAX_SENTENCES:
+            if tail and spoken < limit:
                 yield tail
             elif not spoken and not tail:
                 self.emotion = "thinking"

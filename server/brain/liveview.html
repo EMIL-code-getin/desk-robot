@@ -160,7 +160,7 @@
 
   <main class="deck">
     <section aria-labelledby="l-sees">
-      <h2 class="label" id="l-sees"><span>{name} sees</span><span class="sub" id="framenote"></span></h2>
+      <h2 class="label" id="l-sees"><span><span class="pname">{name}</span> sees</span><span class="sub" id="framenote"></span></h2>
       <div class="viewport dark" id="viewport">
         <img id="cam" src="/stream" alt="">
         <div class="reticle"><div class="horizon" id="horizon"></div><div class="meridian" id="meridian"></div></div>
@@ -169,11 +169,11 @@
         <div class="nocam">No picture yet.<br>The robot's camera streams once it connects.</div>
       </div>
       <div class="card" style="margin-top:16px">
-        <h2 class="label"><span>{name} hears</span><span class="sonar-state" id="hearstate">—</span></h2>
+        <h2 class="label"><span><span class="pname">{name}</span> hears</span><span class="sonar-state" id="hearstate">—</span></h2>
         <div class="sonar"><canvas id="wave"></canvas></div>
         <p class="hint" style="margin-top:6px">Last 8 seconds of sound. Gold bars are speech, red is his own voice.</p>
         <p class="line"><span class="who">You</span><span class="text" id="heard"></span></p>
-        <p class="line said"><span class="who">{name}</span><span class="text" id="said"></span></p>
+        <p class="line said"><span class="who pname">{name}</span><span class="text" id="said"></span></p>
       </div>
     </section>
 
@@ -181,7 +181,7 @@
       <div class="card">
         <h2 class="label"><span>Head</span><span class="sub" id="headnote"></span></h2>
         <div class="field"><span class="k">Pan</span><input type="range" id="pan" min="-60" max="60" step="1" value="0" aria-label="pan"><span class="v" id="panv">0°</span></div>
-        <div class="field"><span class="k">Tilt</span><input type="range" id="tilt" min="-30" max="0" step="1" value="0" aria-label="tilt"><span class="v" id="tiltv">0°</span></div>
+        <div class="field"><span class="k">Tilt</span><input type="range" id="tilt" min="-60" max="0" step="1" value="0" aria-label="tilt"><span class="v" id="tiltv">0°</span></div>
         <div class="row">
           <button data-act="center">Center and relax</button>
           <button id="trackbtn" data-act="track">Follow my face</button>
@@ -200,6 +200,8 @@
           <button type="button" data-act="ask">Ask him</button>
         </form>
         <p class="hint">Say it speaks the words as written. Ask him sends them to his brain.</p>
+        <div class="tune-grid" id="voicetunes" style="margin-top:12px"></div>
+        <p class="hint">Speaker tuning · applies from the next reply · keep it in server/brain/config.py</p>
       </div>
       <div class="card">
         <h2 class="label"><span>Rest</span><span class="sub" id="awakenote"></span></h2>
@@ -227,8 +229,13 @@
     { key: "VAD_THRESHOLD",    name: "Hears speech above",   help: "lower = more sensitive",            min: 0.1, max: 0.95, step: 0.05 },
     { key: "TURN_THRESHOLD",   name: "Sure you're finished", help: "raise if he cuts you off",          min: 0.1, max: 0.95, step: 0.05 },
     { key: "TURN_MAX_SILENCE", name: "Longest pause",        help: "seconds he waits when unsure",      min: 0.5, max: 6,    step: 0.1, unit: " s" },
-    { key: "TTS_LEVEL",        name: "Voice level",          help: "loudness he's held to; prefer volume for overall", min: 0.04, max: 0.25, step: 0.01 },
     { key: "AWAKE_SECONDS",    name: "Stays awake",          help: "after you last spoke",              min: 10,  max: 600,  step: 5,   unit: " s" },
+  ];
+  // Speaker tuning: applies from the next reply.
+  const VOICE = [
+    { key: "TTS_LEVEL",       name: "Voice level", help: "loudness he's held to; prefer volume for overall", min: 0.08, max: 0.40, step: 0.01 },
+    { key: "TTS_HIGHPASS_HZ", name: "Bass cut",    help: "0 = off · deep voices rattle the speaker; try 250-350", min: 0, max: 600, step: 10, unit: " Hz" },
+    { key: "TTS_PRESENCE_DB", name: "Presence",    help: "lift above 1.5 kHz for a muffled voice · too much = thin", min: 0, max: 12, step: 0.5, unit: " dB" },
   ];
   let status = {};
   let dragging = new Set();
@@ -281,8 +288,7 @@
   document.querySelector('[data-act=wake]').onclick = () => act("sleep", { on: false }, NAME + " is awake");
   document.querySelector('[data-act=sleep]').onclick = () => act("sleep", { on: true }, NAME + " is asleep");
 
-  const tunes = $("tunes");
-  for (const t of TUNES) {
+  function slider(into, t, action) {
     const wrap = document.createElement("div"); wrap.className = "tune";
     wrap.innerHTML = `<div class="name"><b>${t.name}</b><small>${t.help}</small></div>
       <input type="range" min="${t.min}" max="${t.max}" step="${t.step}" aria-label="${t.name}"><span class="v">—</span>`;
@@ -290,11 +296,17 @@
     let timer;
     inp.addEventListener("input", () => {
       v.textContent = fmt(+inp.value, t); clearTimeout(timer);
-      timer = setTimeout(() => act("tune", { key: t.key, value: +inp.value }), 200);
+      timer = setTimeout(() => act(action, { key: t.key, value: +inp.value }), 200);
     });
     inp.addEventListener("pointerdown", () => dragging.add(t.key));
     inp.addEventListener("pointerup", () => setTimeout(() => dragging.delete(t.key), 600));
-    tunes.appendChild(wrap); t.inp = inp; t.v = v;
+    into.appendChild(wrap); t.inp = inp; t.v = v;
+  }
+  for (const t of TUNES) slider($("tunes"), t, "tune");
+  for (const t of VOICE) slider($("voicetunes"), t, "voice");
+  function showSliders(list, values) {
+    if (!values) return;
+    for (const t of list) if (!dragging.has(t.key) && values[t.key] != null) { t.inp.value = values[t.key]; t.v.textContent = fmt(+values[t.key], t); }
   }
   function fmt(x, t) { return (t.step >= 1 ? Math.round(x) : x.toFixed(t.step < 0.1 ? 2 : 1)) + (t.unit || ""); }
 
@@ -342,7 +354,7 @@
       $("viewport").classList.toggle("speaking", !!s.speaking);
       $("framenote").textContent = fresh ? "" : "no fresh frame";
       const pan = s.pan ?? 0, tilt = s.tilt ?? 0;
-      $("horizon").style.top = (50 + tilt * (25 / 30)) + "%";
+      $("horizon").style.top = (50 + tilt * (25 / 60)) + "%";
       $("meridian").style.left = (50 - pan * (38 / 60)) + "%";
       $("rpan").textContent = "pan " + Math.round(pan) + "°"; $("rtilt").textContent = "tilt " + Math.round(tilt) + "°";
       $("rtrack").textContent = s.tracking ? "face locked" : s.tracking_enabled ? "looking for a face" : s.head_held ? "holding" : "not tracking";
@@ -361,7 +373,8 @@
       hs.textContent = s.speaking ? "speaking" : !s.listening ? "ears off" : s.hearing ? "hearing you" : "listening";
       hs.className = "sonar-state" + (s.speaking ? " astro" : s.hearing ? " hot" : "");
       drawWave();
-      if (s.tuning) for (const t of TUNES) if (!dragging.has(t.key) && s.tuning[t.key] != null) { t.inp.value = s.tuning[t.key]; t.v.textContent = fmt(+s.tuning[t.key], t); }
+      showSliders(TUNES, s.tuning);
+      showSliders(VOICE, s.voice);
     } catch (e) {
       $("link").textContent = "server?"; $("linkdot").className = "dot";
     }

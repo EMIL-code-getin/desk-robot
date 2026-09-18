@@ -56,7 +56,7 @@ void printHelp() {
   Serial.println(F("desk-robot commands:"));
   Serial.println(F("  emo <name>   neutral|happy|sad|angry|surprised|sleepy|thinking"));
   Serial.println(F("  pan <deg>    turn head, -60..60 (0 = center)"));
-  Serial.println(F("  tilt <deg>   nod head, -30 (down)..40 (up), 0 = level"));
+  Serial.println(F("  tilt <deg>   nod head, -60 (down)..0 (level)"));
   Serial.println(F("  center       head to center on both axes"));
   Serial.println(F("  raw pan|tilt <deg>  calibration move that ignores the limits (watch it!)"));
   Serial.println(F("  blink        blink now"));

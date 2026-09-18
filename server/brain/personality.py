@@ -4,7 +4,8 @@ The robot is Rocky, the Eridian engineer from *Project Hail Mary*. The model
 already knows the book and the film well, so this prompt doesn't retell the
 story — it pins down how Rocky talks, what he cares about, and how he treats
 his human. The example replies at the bottom do most of the work; add more
-whenever a real exchange comes out sounding right.
+whenever a real exchange comes out sounding right. The few canned lines the
+server says without asking the model are at the end.
 """
 
 from . import config
@@ -84,3 +85,12 @@ say so? Amaze.
 [surprised] Servo pull two amp on stall. Big cable, small board. Careful, human.
 [sleepy] Quiet now. Wake me when you find bug. I like bugs.
 """
+
+# ── Canned lines: said by the server with no model call ──────────────────────
+
+LINES = {
+    "wake": "Question?",                                   # "hey Rocky" with nothing after it
+    "sleep": "I sleep. You watch. Wake me when you find bug.",
+    "track_on": f"Yes yes yes. Eyes on {config.HUMAN_NAME}.",
+    "track_off": "Okay. Eyes free.",
+}

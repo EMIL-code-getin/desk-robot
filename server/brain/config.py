@@ -15,11 +15,12 @@ if _ENV_FILE.is_file():
         _k, _v = _line.split("=", 1)
         os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
 
-# The robot's name — the wake word (M4) will be "hey <name>".
+# The robot's name — the wake word is "hey <name>".
 ROBOT_NAME = "Rocky"
 
-# Your name — Rocky calls you this.
-HUMAN_NAME = "Casey"
+# Your name — Rocky calls you this. Set HUMAN_NAME in server/.env so it
+# stays out of the repo; "friend" until you do.
+HUMAN_NAME = os.environ.get("HUMAN_NAME", "friend")
 
 # Language model for the personality, by OpenRouter model id (openrouter.ai
 # /models). Needs OPENROUTER_API_KEY in your shell. One key, any model:
@@ -31,24 +32,47 @@ MODEL = "anthropic/claude-haiku-4.5"
 # WebSocket port the robot connects to.
 PORT = 8765
 
-# Text-to-speech (M3). Rocky's voice comes from Fish Audio (fish.audio):
-# open the voice's page on the site, copy the model/reference ID from the
-# URL into TTS_VOICE_ID, and export FISH_AUDIO_API_KEY in your shell.
-TTS_PROVIDER = "fish"
-TTS_VOICE_ID = "6dd07916890445e59c5f019ad0fc7879"  # 32-char hex ID from the voice page URL on fish.audio
-TTS_FALLBACK_VOICE = "Fred"  # macOS `say` voice used until Fish Audio is set up
-# Fish Audio generation settings. Lower = steadier, fewer hallucinated
-# sounds/laughs/extra words (a known quirk of generated speech); higher =
-# more expressive. Fish's defaults are 0.7 / 0.7.
+# Rocky's voice and how much he says. The character itself (system prompt,
+# canned lines) is in personality.py.
+#   TTS_VOICE_ID  Fish Audio (fish.audio) voice: open the voice's page on the
+#                 site and copy the 32-char ID from the URL. Needs
+#                 FISH_AUDIO_API_KEY in server/.env.
+#   TTS_TEMPERATURE / TTS_TOP_P
+#                 Fish generation settings. Lower = steadier, fewer
+#                 hallucinated sounds/laughs/extra words (a known quirk of
+#                 generated speech); higher = more expressive. Fish's
+#                 defaults are 0.7 / 0.7.
+#   REPLY_MAX_SENTENCES
+#                 the prompt asks for at most this many, and the server cuts
+#                 anything past it before it's spoken (keeps voice cost down).
+#   TTS_LEVEL     loudness the voice is held to (RMS, 0..1; see TTS_MAX_GAIN).
+#   TTS_HIGHPASS_HZ
+#                 bass cut before the speaker, 0 = off. The small speaker
+#                 can't reproduce bass; it just rattles the shell. A deep
+#                 voice wants 250-350.
+#   TTS_PRESENCE_DB
+#                 boost above ~1.5 kHz, where speech clarity lives, 0 = off.
+#                 Lifts a muffled voice; too much sounds thin and hissy.
+# The console page has sliders for level / bass cut / presence that apply
+# live; set the winners here to keep them.
+TTS_VOICE_ID = "6dd07916890445e59c5f019ad0fc7879"
 TTS_TEMPERATURE = 0.4
 TTS_TOP_P = 0.6
+REPLY_MAX_SENTENCES = 3
+TTS_LEVEL = 0.26
+TTS_HIGHPASS_HZ = 0.0
+TTS_PRESENCE_DB = 0.0
+
+# Text-to-speech (M3). The voice comes from Fish Audio (TTS_VOICE_ID above).
+TTS_PROVIDER = "fish"
+TTS_FALLBACK_VOICE = "Fred"  # macOS `say` voice used until Fish Audio is set up
 # Loudness. Fish's level wanders from line to line, so the audio goes through
 # an automatic gain control (mouth.Leveler) that holds it near TTS_LEVEL
-# (RMS, 0..1: 0.12 is a healthy speaking level) using at most TTS_MAX_GAIN of
-# boost. Prefer the robot's `volume` for everyday loudness; TTS_LEVEL sets
-# how much the voice is allowed to swell and drop.
-TTS_LEVEL = 0.12
-TTS_MAX_GAIN = 6.0
+# (RMS, 0..1) using at most TTS_MAX_GAIN of boost, with a soft limiter on
+# the peaks. 0.26 matches the loudness of the original build; lower
+# TTS_LEVEL if the voice sounds strained, raise the robot's `volume` for
+# everyday loudness.
+TTS_MAX_GAIN = 8.0
 # Diagnostics: save each spoken clip (server/debug/tts/…, keeps the last 30)
 # and, if DEBUG_TTS_CHECK, transcribe it afterwards to flag audio that doesn't
 # match the text — i.e. the voice model made something up. The check runs a
@@ -76,15 +100,17 @@ MIC_SOURCE = "auto"      # "robot" = the robot's mic, "mac" = MIC_DEVICE below,
                          # "auto" = robot when it's connected, else the Mac
 MIC_DEVICE = "Scarlett Solo USB"  # None = system default. List devices: python -m sounddevice
 # Speech detection (server/brain/turn.py). A Silero VAD model decides whether
-# each 32 ms chunk is speech (VAD_THRESHOLD, 0..1: lower = more sensitive), so
-# the loudness of a particular mic no longer matters. When you pause for
-# TURN_PAUSE_SECONDS the Smart Turn model listens to the whole sentence and
+# each 32 ms chunk is speech (VAD_THRESHOLD, 0..1: lower = more sensitive).
+# Once speech starts, a cutoff 0.15 lower keeps softer syllables from being
+# mistaken for a pause. Microphone level and background noise still matter.
+# When you pause for TURN_PAUSE_SECONDS the Smart Turn model listens to the
+# whole sentence and
 # decides whether you sound finished (probability above TURN_THRESHOLD ->
 # Rocky answers now). If it thinks you're mid-thought it keeps listening,
 # re-checking every TURN_RECHECK_SECONDS, and gives up waiting after
 # TURN_MAX_SILENCE seconds of quiet. If Rocky keeps cutting you off, raise
 # TURN_THRESHOLD; if he waits too long after you finish, lower it.
-VAD_THRESHOLD = 0.5
+VAD_THRESHOLD = 0.4
 TURN_PAUSE_SECONDS = 0.2
 TURN_RECHECK_SECONDS = 0.6
 TURN_MAX_SILENCE = 2.5
@@ -103,7 +129,7 @@ SLEEP_PHRASES = [        # any of these puts him to sleep until the next "hey Ro
     "good night",
     "stop listening",
 ]
-SLEEP_LINE = "I sleep. You watch. Wake me when you find bug."  # said as he goes to sleep
+# What he says as he goes to sleep: personality.py, LINES.
 
 # Emotions the firmware knows how to display (see firmware/src/face.cpp).
 EMOTIONS = [
@@ -142,8 +168,7 @@ CAMERA_WORDS = [
 TRACKING = False
 TRACK_ON_PHRASES = ["track me", "follow me", "watch me", "keep your eyes on me", "look at me"]
 TRACK_OFF_PHRASES = ["stop tracking", "stop following", "stop watching", "stop looking at me"]
-TRACK_ON_LINE = "Yes yes yes. Eyes on Casey."
-TRACK_OFF_LINE = "Okay. Eyes free."
+# What he says when tracking starts/stops: personality.py, LINES.
 TRACK_HFOV = 62.0          # camera field of view, degrees (OV2640 stock lens)
 TRACK_VFOV = 48.0
 TRACK_GAIN = 0.5           # fraction of the error corrected per frame (lower = calmer)
@@ -151,13 +176,9 @@ TRACK_DEADBAND = 0.10      # ignore errors smaller than this fraction of half-fr
 TRACK_PAN_SIGN = 1         # flip to -1 if the head turns AWAY from you
 TRACK_TILT_SIGN = 1        # flip to -1 if it nods the wrong way
 TRACK_PAN_LIMIT = 60.0     # must match PAN_MIN/MAX_DEG in firmware config.h
-TRACK_TILT_MIN = -30.0     # must match TILT_MIN/MAX_DEG in firmware config.h
+TRACK_TILT_MIN = -60.0     # must match TILT_MIN/MAX_DEG in firmware config.h
 TRACK_TILT_MAX = 0.0
 TRACK_LOST_SECONDS = 4.0   # no face this long → idle glances resume
-
-# Reply length: the prompt asks for this many sentences at most, and the
-# server cuts anything past it before it's spoken (keeps voice cost down).
-REPLY_MAX_SENTENCES = 3
 
 # How many conversation turns to remember before forgetting the oldest.
 MAX_HISTORY_TURNS = 20

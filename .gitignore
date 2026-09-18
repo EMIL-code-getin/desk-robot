@@ -17,3 +17,6 @@ firmware/include/secrets.h
 
 # Mic debug recordings
 server/debug/
+
+# Tool session artifact that sometimes appears at the repo root
+:memory:.ses

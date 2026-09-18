@@ -3,7 +3,7 @@
 Both are small ONNX models that run on the Mac's CPU in a few milliseconds.
 
 * Silero VAD v6 (MIT): says whether a 32 ms chunk contains speech. It replaces
-  the old "louder than X" test, so it no longer matters how loud each mic is.
+  the old "louder than X" test, but mic level and noise still affect detection.
 * Smart Turn v3.2 (BSD-2, from the Pipecat project): listens to the whole
   current turn and says whether the person sounds finished or merely paused.
   It only runs when the VAD sees a pause, so it costs nothing while you talk.

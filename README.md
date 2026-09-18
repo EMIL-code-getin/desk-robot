@@ -78,7 +78,7 @@ joins WiFi and takes orders from Rocky's brain on the Mac.
    help                 list commands
    emo happy            change the face (neutral/happy/sad/angry/surprised/sleepy/thinking)
    pan -30              turn the head (degrees, -60..60, 0 = center)
-   tilt 20              nod the head (degrees, -30 down..40 up, 0 = level)
+   tilt 20              nod the head (degrees, -60 down..0 level)
    blink                manual blink
    demo off             stop the idle demo behavior
    raw tilt 20          calibration move that ignores the limits (watch it!)
@@ -97,7 +97,7 @@ cd server
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                  # then put your OpenRouter key in .env
+cp .env.example .env                  # then put your OpenRouter key and your name in .env
 python -m brain.main
 ```
 
@@ -157,14 +157,34 @@ One OpenRouter key works for every model, so swapping is a one-line change.
 
 ## The robot is Rocky
 
-The personality in `server/brain/personality.py` is Rocky, the Eridian
+The character lives in `server/brain/personality.py`. Rocky is the Eridian
 engineer from *Project Hail Mary*: short sentences, "question"/"answer",
 "amaze", and constant worry about whether his human has slept. Tune him by
 chatting with `ask` in the server console and adding good exchanges to the
-example replies. The wake word (M4) will be "hey Rocky".
+example replies. The canned lines he says without thinking (goodnight, "eyes
+on you") are in the same file.
 
-The voice (M3) comes from Fish Audio's community Rocky voice — set
-`TTS_VOICE_ID` in `server/brain/config.py` and export `FISH_AUDIO_API_KEY`.
+The voice comes from Fish Audio: the voice ID, the words speech-to-text tends
+to hear for "hey Rocky", and his reply length in sentences are in
+`server/brain/config.py`. Export `FISH_AUDIO_API_KEY` in `server/.env`.
+
+Speaker tuning matters because the robot's speaker is tiny: a deep voice
+turns into rattle and mud on it. `config.py` has a loudness level
+(`TTS_LEVEL`), a bass cut (`TTS_HIGHPASS_HZ`) and a presence lift
+(`TTS_PRESENCE_DB`) that the server applies before the audio reaches the
+speaker. The console page has sliders for them so you can dial them in while
+he talks; copy the winners into config to keep them.
+
+## Credits
+
+- Face detection is [YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet)
+  (`server/models/face_detection_yunet_2023mar.onnx`), Apache 2.0, by
+  Shiqi Yu and the OpenCV Zoo contributors.
+- Speech detection is [Silero VAD](https://github.com/snakers4/silero-vad)
+  (MIT) and end-of-turn detection is
+  [Smart Turn](https://github.com/pipecat-ai/smart-turn) (BSD-2-Clause);
+  both download on first run.
+- Rocky and his voice are fan work. *Project Hail Mary* belongs to Andy Weir.
 
 ## Security notes
 

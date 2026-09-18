@@ -129,7 +129,13 @@ class Segmenter:
     def _step(self, chunk: np.ndarray) -> np.ndarray | None:
         prob = self.vad(chunk)
         self.speech_prob = prob
-        loud = prob > config.VAD_THRESHOLD
+        # Match Silero's separate start/stop cutoffs: once a voice has started,
+        # keep its softer syllables instead of treating them as a turn-ending
+        # pause. Derive from the live setting so console tuning affects both.
+        threshold = config.VAD_THRESHOLD
+        if self.speaking:
+            threshold = max(0.01, threshold - 0.15)
+        loud = prob > threshold
         if not self.speaking:
             self.pre_roll.append(chunk)
             if loud:
@@ -267,6 +273,7 @@ class Ears:
         self.on_utterance = on_utterance
         self.device = device
         self.device_name = "?"
+        self.mac_error: str | None = None  # why the Mac mic could not be opened, if it couldn't
         self.muted = threading.Event()  # set while Rocky is talking (no echo cancel)
         self.source = "mac"             # "mac" or "robot": whose audio is live
         self.level = 0.0                # RMS of the latest live block (for `mic`)
@@ -309,24 +316,38 @@ class Ears:
         self._blocks.put(block)
 
     def start(self) -> str:
-        import sounddevice as sd
-
-        # Open every input the device has (a Scarlett has two) and mix them,
-        # so it doesn't matter which jack the mic is plugged into.
-        channels = max(1, int(sd.query_devices(self.device, "input")["max_input_channels"]))
-        self._stream = sd.InputStream(
-            samplerate=SAMPLE_RATE,
-            channels=channels,
-            dtype="float32",
-            blocksize=BLOCK_SAMPLES,
-            device=self.device,
-            callback=self._on_audio,
-        )
-        self._stream.start()
+        """Start the worker and try to open the Mac mic. A missing Mac mic
+        (interface unplugged, wrong MIC_DEVICE) must not stop the robot's own
+        mic from working: it only means there is no Mac fallback, so the
+        failure is recorded in mac_error and start() still succeeds."""
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
-        self.device_name = sd.query_devices(self._stream.device)["name"]
+        try:
+            import sounddevice as sd
+
+            # Open every input the device has (a Scarlett has two) and mix them,
+            # so it doesn't matter which jack the mic is plugged into.
+            channels = max(1, int(sd.query_devices(self.device, "input")["max_input_channels"]))
+            self._stream = sd.InputStream(
+                samplerate=SAMPLE_RATE,
+                channels=channels,
+                dtype="float32",
+                blocksize=BLOCK_SAMPLES,
+                device=self.device,
+                callback=self._on_audio,
+            )
+            self._stream.start()
+            self.device_name = sd.query_devices(self._stream.device)["name"]
+            self.mac_error = None
+        except Exception as e:
+            self._stream = None
+            self.device_name = "no Mac mic"
+            self.mac_error = str(e)
         return self.device_name
+
+    @property
+    def has_mac_mic(self) -> bool:
+        return self._stream is not None
 
     def stop(self) -> None:
         if self._stream is not None:
