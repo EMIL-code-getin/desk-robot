@@ -71,9 +71,9 @@ TTS_VOICE_ID = "6dd07916890445e59c5f019ad0fc7879"
 TTS_TEMPERATURE = 0.4
 TTS_TOP_P = 0.6
 REPLY_MAX_SENTENCES = 3
-TTS_LEVEL = 0.26
-TTS_HIGHPASS_HZ = 0.0
-TTS_PRESENCE_DB = 0.0
+TTS_LEVEL = 0.14
+TTS_HIGHPASS_HZ = 150.0
+TTS_PRESENCE_DB = 3.0
 
 # Text-to-speech. The voice comes from Fish Audio (TTS_VOICE_ID above).
 TTS_FALLBACK_VOICE = "Fred"  # built-in voice used until Fish Audio is set up: a macOS `say`
@@ -81,9 +81,10 @@ TTS_FALLBACK_VOICE = "Fred"  # built-in voice used until Fish Audio is set up: a
 # Loudness. Fish's level wanders from line to line, so the audio goes through
 # an automatic gain control (mouth.Leveler) that holds it near TTS_LEVEL
 # (RMS, 0..1) using at most TTS_MAX_GAIN of boost, with a soft limiter on
-# the peaks. 0.26 matches the loudness of the original build; lower
-# TTS_LEVEL if the voice sounds strained, raise the robot's `volume` for
-# everyday loudness.
+# the peaks. Speech peaks sit ~14 dB above its RMS, so 0.14 keeps them
+# just under the limiter's knee; 0.26 drove every peak into the limiter
+# and the amp near clipping (crackly, muffled). Raise the robot's
+# `volume` for everyday loudness, not this.
 TTS_MAX_GAIN = 8.0
 # Diagnostics, both off by default so nothing is written to disk. DEBUG_SAVE_TTS
 # saves each spoken clip and its text to server/debug/tts/ (git-ignored, keeps
