@@ -28,3 +28,6 @@ server/debug/
 
 # Session file some tools drop at the repo root
 :memory:.ses
+
+# Pan/tilt CAD (Fusion archive, STLs, generator): kept locally and in Fusion, not in the repo
+docs/cad/

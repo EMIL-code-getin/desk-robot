@@ -8,6 +8,14 @@ and speaks the reply through the robot's speaker.
 
 <!-- photo or short clip goes here: docs/rocky.jpg -->
 
+## Versions
+
+**V1 is the robot in the videos.** It is frozen as the
+[v1.0 release](https://github.com/cgro00/desk-robot/releases/tag/v1.0), a
+permanent snapshot of the code, wiring, and parts list as built. `main` is
+always the latest version and may be ahead of what an older video shows.
+[CHANGELOG.md](CHANGELOG.md) lists what changed between versions.
+
 Out of the box it is **Rocky**, the Eridian engineer from *Project Hail
 Mary*: short sentences, "question" and "answer", "amaze", and constant
 worry about whether you have slept. Everything about him is yours to change.
