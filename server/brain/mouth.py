@@ -181,7 +181,7 @@ class Leveler:
     RELEASE = 0.1       # per chunk: quieter than expected → follow slowly
     SQUEEZE = 0.35      # how far each chunk is pulled toward the running level
                         # (0 = only sentence-scale leveling, 1 = flatten every chunk)
-    KNEE = 0.6          # above this, peaks are squeezed smoothly toward 1.0 (no clipping)
+    CEILING = 0.95      # never let a chunk's peak exceed this: the chunk is turned down, not bent
 
     def __init__(self) -> None:
         # Read once per reply, so the console's sliders apply from the next one.
@@ -210,23 +210,18 @@ class Leveler:
             target = min(config.TTS_MAX_GAIN, max(0.5, self.level / judged))
         else:
             target = self.gain  # a gap: hold the gain where it is
+        # Peak limiting the way the original build did it (2026-09-06): cap the
+        # chunk's gain so its peak stays under CEILING. The waveform is never
+        # bent, so loud syllables get quieter rather than harsher.
+        peak = float(np.abs(x).max())
+        if peak > 0:
+            target = min(target, self.CEILING / peak)
         y = x * np.linspace(self.gain, target, len(x), dtype=np.float32)
         self.gain = target
-        return (self._soft_limit(y) * 32767).astype(np.int16).tobytes()
-
-    def _soft_limit(self, y: np.ndarray) -> np.ndarray:
-        """Unity below KNEE; above it, peaks bend smoothly toward 1.0 instead
-        of clipping. Speech peaks are tall next to its average, so this is
-        what lets the average sit at a healthy level without distortion."""
-        a = np.abs(y)
-        over = a > self.KNEE
-        if not over.any():
-            return y
-        room = 1.0 - self.KNEE
-        squeezed = self.KNEE + room * np.tanh((a[over] - self.KNEE) / room)
-        out = y.copy()
-        out[over] = np.sign(y[over]) * squeezed
-        return out
+        top = float(np.abs(y).max())
+        if top > self.CEILING:  # the ramp started above the cap: trim the whole chunk
+            y *= self.CEILING / top
+        return (y * 32767).astype(np.int16).tobytes()
 
 
 def _wav_to_pcm16k(wav_bytes: bytes) -> bytes:
