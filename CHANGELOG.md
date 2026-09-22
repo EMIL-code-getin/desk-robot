@@ -11,7 +11,7 @@ latest work. A video matches the tagged version it was made with.
 ## v1.0 - 2026-09-21
 
 The robot in the videos: XIAO ESP32S3 Sense, OLED face, off-the-shelf
-pan/tilt bracket with MG90S servos, camera, PDM mic, MAX98357A amp and
+pan/tilt bracket with SG90 servos, camera, PDM mic, MAX98357A amp and
 speaker; Python brain on your computer with wake word, speech-to-text,
 a language model, and a cloned voice.
 
