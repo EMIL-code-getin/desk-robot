@@ -73,39 +73,41 @@ game you have these options:
 
 ## ESP32-S3: shifter + handbrake in one USB controller
 
-`esp32s3_shifter_handbrake/` runs the same shifter next to an analog
-handbrake (potentiometer or hall sensor) on one ESP32-S3. The PC sees one
-gamepad:
+`esp32s3_shifter_handbrake/` adds the shifter to an existing on/off Hall
+sensor handbrake on a Seeed XIAO ESP32S3 (`handbroms_esp32s3.ino`). The
+handbrake behaves exactly as before, so existing game bindings keep
+working. The PC still sees one joystick:
 
 | Input | Shows up as |
 |-------|-------------|
-| Gears 1–6, R | Buttons 1–7, held while in gear (N = none pressed) |
-| Handbrake | Rx axis, full range |
-| Handbrake past 50 % | Button 8, for games that only take a handbrake button |
+| Handbrake | Button 1 + Z axis (0 / 1023), unchanged |
+| Gears 1–6 | Buttons 2–7, held while in gear |
+| Reverse | Button 8 |
+| Neutral | No gear button pressed |
 
-**Wiring:** power the joystick from **3V3, not 5V**. The ESP32-S3 pins are
-not 5V tolerant.
+**Wiring:** everything on **3V3, not 5V**. The ESP32-S3 pins are not 5V
+tolerant.
 
-| Joystick | ESP32-S3 |
-|----------|----------|
-| VCC / +5V | 3V3 |
-| GND | GND |
-| VRx | GPIO4 |
-| VRy | GPIO5 |
-| SW | GPIO6 |
+| Part | XIAO ESP32S3 |
+|------|--------------|
+| Hall sensor OUT | D0 (GPIO1), as before |
+| Joystick VCC / +5V | 3V3 |
+| Joystick GND | GND |
+| Joystick VRx | D3 (GPIO4) |
+| Joystick VRy | D4 (GPIO5) |
+| Joystick SW | D5 (GPIO6) |
 
-The handbrake stays where it is: set `HANDBRAKE_PIN` to the pin it uses.
-Keep analog inputs on ADC1 pins (GPIO1–10).
+**Arduino IDE:** same as the handbrake. Use the board "XIAO_ESP32S3", set
+**USB Mode → USB-OTG (TinyUSB)** and **USB CDC On Boot → Enabled**, and
+install the [Joystick_ESP32S3](https://github.com/ChrGri/Joystick_ESP32S3)
+library (ChrGri, ZIP; the header is still `Joystick_ESP32S2.h`).
 
-**Arduino IDE settings:** pick your ESP32-S3 board, then set
-**Tools → USB Mode → USB-OTG (TinyUSB)** and **USB CDC On Boot → Enabled**.
-The sketch refuses to compile in the other USB mode.
-
-**Calibrate the handbrake once:** set `DEBUG_HANDBRAKE = true`, open the
-Serial Monitor at 115200, and note the `raw` value released and fully
-pulled. Put them in `HANDBRAKE_RELEASED` and `HANDBRAKE_PULLED`, and set
-`DEBUG_HANDBRAKE` back to `false`. Check the result in Windows under
-*Set up USB game controllers* (`joy.cpl`) → Properties.
+**At power-up**, keep the handbrake released and the stick centered: both
+resting positions are measured then. On the Serial Monitor (115200), `r`
+re-measures both, `v` prints the values including stick X/Y and the
+current gear, and `l` toggles live output.
 
 The shifter thresholds are the Uno's scaled to the ESP32's 12-bit ADC. The
-same settings apply.
+same settings apply. Check the buttons in Windows under
+*Set up USB game controllers* (`joy.cpl`) → Properties, then bind gears
+1–6 and R in the game, e.g. Assetto Corsa → Controls → Shifter.
