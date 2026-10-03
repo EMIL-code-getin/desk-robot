@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Överlevnadsguide</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1b1b1b;
+    --muted: #5c5c5c;
+    --card: #f2f2ee;
+    --line: #d6d6d0;
+    --accent: #2f6b3a;
+    --accent-fg: #ffffff;
+    --danger: #b3261e;
+    --danger-bg: #fbe9e7;
+    --warn-bg: #fff4d6;
+    --link: #1d5fb4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111311;
+      --fg: #ecece6;
+      --muted: #a6a69e;
+      --card: #1d201d;
+      --line: #343834;
+      --accent: #5fae6c;
+      --accent-fg: #0d140e;
+      --danger: #ff8a80;
+      --danger-bg: #3a1714;
+      --warn-bg: #3a3214;
+      --link: #8cb8ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111311;
+    --fg: #ecece6;
+    --muted: #a6a69e;
+    --card: #1d201d;
+    --line: #343834;
+    --accent: #5fae6c;
+    --accent-fg: #0d140e;
+    --danger: #ff8a80;
+    --danger-bg: #3a1714;
+    --warn-bg: #3a3214;
+    --link: #8cb8ff;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 52px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; gap: 6px; align-items: center;
+    padding: 6px 10px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 16px; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header a, header button {
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--card); color: var(--fg); text-decoration: none; cursor: pointer;
+  }
+  header a.sos { background: var(--danger); border-color: var(--danger); color: #fff; }
+  main { max-width: 760px; margin: 0 auto; padding: 8px 10px 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 6px 0 12px; }
+  .grid a {
+    display: block; padding: 12px 8px; border-radius: 8px;
+    background: var(--card); border: 1px solid var(--line);
+    color: var(--fg); text-decoration: none; font-weight: 600; text-align: center;
+  }
+  .grid a.sos { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+  h2 { font-size: 18px; margin: 22px 0 6px; padding-top: 6px; border-top: 2px solid var(--accent); }
+  h3 { font-size: 15px; margin: 14px 0 4px; }
+  p, ul, ol { margin: 4px 0 8px; }
+  ul, ol { padding-left: 20px; }
+  li { margin: 2px 0; }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; }
+  summary { padding: 9px 10px; font-weight: 600; cursor: pointer; }
+  details > div { padding: 0 10px 8px; }
+  .box { padding: 8px 10px; border-radius: 8px; margin: 8px 0; }
+  .danger { background: var(--danger-bg); border-left: 4px solid var(--danger); }
+  .warn { background: var(--warn-bg); border-left: 4px solid #d9a400; }
+  .big { font-size: 20px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 4px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  a { color: var(--link); }
+  a.web { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  #filter {
+    width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  }
+  .hidden { display: none !important; }
+  .top { font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Överlevnadsguide</h1>
+  <a href="#nod" class="sos">NÖD</a>
+  <a href="#hem">Meny</a>
+  <button id="theme" type="button" aria-label="Byt ljust eller mörkt läge">◐</button>
+</header>
+<main>
+
+<section id="hem">
+  <div class="grid">
+    <a href="#nod" class="sos">Nödläge</a>
+    <a href="#forsta">Första hjälpen</a>
+    <a href="#lakemedel">Läkemedel</a>
+    <a href="#skydd">Skydd</a>
+    <a href="#vatten">Vatten</a>
+    <a href="#eld">Eld</a>
+    <a href="#bar">Bär</a>
+    <a href="#svamp">Svamp</a>
+    <a href="#vaxter">Ätliga växter</a>
+    <a href="#signal">Signaler &amp; hitta</a>
+    <a href="#wiki">Alla wikilänkar</a>
+    <a href="http://localhost:8080/">Offline-bibliotek</a>
+  </div>
+  <input id="filter" type="search" placeholder="Sök i guiden… (t.ex. fästing, lingon, snö)">
+  <p class="muted">Länkarna öppnar artikeln i offline-Wikipedia (Kiwix på den här datorn). Den lilla länken <em>webb</em> öppnar samma sak på internet. Om offline-länkarna inte fungerar, kör <code>sudo systemctl restart kiwix</code> i en terminal.</p>
+</section>
+
+<section id="nod">
+  <h2>Nödläge – gör så här först</h2>
+  <div class="box danger">
+    <div class="big">Ring 112</div>
+    Fungerar även om ditt eget operatörsnät saknar täckning, så länge något mobilnät når fram. Säg <b>var</b> du är, <b>vad</b> som hänt och <b>hur många</b> som är skadade.
+  </div>
+  <ul>
+    <li><b>Förgiftning</b> (svamp, bär, läkemedel): akut → 112. Inte akut → Giftinformation <b>010-456 67 00</b>. Spara resterna av det personen ätit.</li>
+    <li><b>Sjukvårdsråd</b>: 1177.</li>
+    <li><b>Vid kris eller VMA</b>: lyssna på Sveriges Radio P4.</li>
+  </ul>
+  <h3>S.T.O.P. – om du gått vilse eller det gått snett</h3>
+  <ol>
+    <li><b>Stanna</b> – sätt dig ner. Panik dödar.</li>
+    <li><b>Tänk</b> – vad har du, vad behöver du?</li>
+    <li><b>Observera</b> – väder, ljus kvar, skador, resurser runt dig.</li>
+    <li><b>Planera</b> – och håll dig sedan till planen.</li>
+  </ol>
+  <h3>Prioriteringsordning (”3-regeln”)</h3>
+  <table>
+    <tr><th>Utan</th><th>Klarar man ungefär</th><th>Därför</th></tr>
+    <tr><td>Luft / svår blödning</td><td>3 minuter</td><td>Första hjälpen först</td></tr>
+    <tr><td>Skydd i kyla, väta, blåst</td><td>3 timmar</td><td>Nedkylning är vanligaste dödsorsaken i naturen</td></tr>
+    <tr><td>Vatten</td><td>3 dagar</td><td>Mindre i värme eller vid ansträngning</td></tr>
+    <tr><td>Mat</td><td>3 veckor</td><td>Mat är lägst prioritet – ta inga risker med okänd svamp eller växter</td></tr>
+  </table>
+  <p>Har du gått vilse: <b>stanna kvar</b> där du är om någon vet ungefär var du är. Det är lättare att hitta någon som står still.</p>
+</section>
+
+<section id="forsta">
+  <h2>Första hjälpen</h2>
+  <div class="box warn">Det här är en minneslista, inte en ersättning för en kurs. Röda korset och Svenska rådet för hjärt-lungräddning har bra kurser.</div>
+
+  <details open><summary>L-ABC – undersök i den här ordningen</summary><div>
+    <ol>
+      <li><b>L – Livsfarligt läge</b>: flytta personen (och dig) bort från fara: vatten, trafik, kyla, rasrisk.</li>
+      <li><b>A – Andning</b>: fri luftväg – lyft hakan, böj huvudet bakåt. Andas personen normalt? Titta, lyssna, känn i 10 sekunder.</li>
+      <li><b>B – Blödning</b>: stoppa kraftiga blödningar.</li>
+      <li><b>C – Chock</b>: förebygg och behandla chock.</li>
+    </ol>
+    <p><a class="w" data-w="Första hjälpen">Första hjälpen</a></p>
+  </div></details>
+
+  <details><summary>Medvetslös – andas inte normalt (HLR)</summary><div>
+    <ol>
+      <li>Ring 112 (eller be någon ringa). Sätt telefonen på högtalare.</li>
+      <li>30 bröstkompressioner mitt på bröstbenet, 5–6 cm djupt, 100–120 per minut.</li>
+      <li>2 inblåsningar. Fortsätt 30:2 tills hjälp kommer eller personen vaknar.</li>
+      <li>Kan du inte blåsa in: gör bara kompressioner.</li>
+    </ol>
+    <p><a class="w" data-w="Hjärt-lungräddning">Hjärt-lungräddning</a></p>
+  </div></details>
+
+  <details><summary>Medvetslös – andas normalt</summary><div>
+    <p>Lägg i <b>stabilt sidoläge</b> så att tungan och kräkningar inte täpper till luftvägen. Isolera mot marken och håll varm. Kontrollera andningen hela tiden.</p>
+    <p><a class="w" data-w="Stabilt sidoläge">Stabilt sidoläge</a></p>
+  </div></details>
+
+  <details><summary>Kraftig blödning</summary><div>
+    <ol>
+      <li>Tryck <b>direkt på såret</b> med handen eller ett förband. Släpp inte.</li>
+      <li>Lägg personen ner och håll den blödande kroppsdelen högt.</li>
+      <li>Lägg ett <b>tryckförband</b>: kompress på såret, något hårt ovanpå (t.ex. en ihoprullad binda), linda fast hårt.</li>
+      <li>Livshotande blödning från arm eller ben som inte stannar: <b>avsnörande förband</b> (tourniquet) 5–8 cm ovanför såret, dra åt tills blödningen slutar. Skriv upp klockslaget.</li>
+    </ol>
+  </div></details>
+
+  <details><summary>Chock</summary><div>
+    <p>Tecken: blek, kallsvettig, snabb puls, oro, törst, förvirring.</p>
+    <ul>
+      <li>Stoppa blödningar. Lägg personen ner, gärna med benen lite högre.</li>
+      <li>Håll varm – isolera mot marken.</li>
+      <li>Lugna. Ingen mat eller dryck. Lämna aldrig ensam.</li>
+    </ul>
+    <p><a class="w" data-w="Cirkulatorisk chock">Chock</a></p>
+  </div></details>
+
+  <details><summary>Nedkylning (hypotermi)</summary><div>
+    <p>Tecken: huttrar, stel, klumpig, sluddrar, blir likgiltig. Huttringen kan <b>upphöra</b> vid svår nedkylning – det är ett dåligt tecken.</p>
+    <ul>
+      <li>In i skydd mot vind och väta. Isolera mot marken – marken stjäl mest värme.</li>
+      <li>Byt blöta kläder mot torra. Mössa, sovsäck, räddningsfilt.</li>
+      <li>Vaken person: varm, söt dryck och mat.</li>
+      <li>Svårt nedkyld: hantera <b>varsamt</b>, håll liggande, värm bålen (inte armar och ben) – ring 112.</li>
+    </ul>
+    <p><a class="w" data-w="Hypotermi">Hypotermi</a></p>
+  </div></details>
+
+  <details><summary>Köldskador (förfrysning)</summary><div>
+    <ul>
+      <li>Vita, stela fläckar på kinder, näsa, fingrar, tår.</li>
+      <li>Värm med kroppsvärme – en varm hand, armhålan, magen på en kamrat.</li>
+      <li><b>Gnid inte</b>, och använd inte snö eller eld.</li>
+      <li>Tina inte upp om det finns risk att det fryser igen.</li>
+    </ul>
+    <p><a class="w" data-w="Köldskada">Köldskada</a></p>
+  </div></details>
+
+  <details><summary>Brännskada</summary><div>
+    <ul>
+      <li>Kyl med <b>svalt, inte iskallt</b> vatten (ca 20 °C) i minst 20 minuter.</li>
+      <li>Ta av ringar och klocka innan det svullnar.</li>
+      <li>Täck löst med rent förband eller plastfolie. Stick inte hål på blåsor.</li>
+      <li>Större än handflatan, i ansiktet, vid lederna eller på barn → sök vård.</li>
+    </ul>
+    <p><a class="w" data-w="Brännskada">Brännskada</a></p>
+  </div></details>
+
+  <details><summary>Stukning och benbrott</summary><div>
+    <p><b>Stukning</b>: kyl (lägg tyg emellan om du använder is eller snö), linda med elastisk binda, håll högt, vila.</p>
+    <p><b>Misstänkt benbrott</b>: rör så lite som möjligt. Stabilisera i det läge du hittar – spjäla med pinnar eller en hoprullad liggunderlag och linda. Kontrollera att fingrar/tår är varma och har känsel efteråt.</p>
+    <p><a class="w" data-w="Stukning">Stukning</a> · <a class="w" data-w="Benbrott">Benbrott</a></p>
+  </div></details>
+
+  <details><summary>Fästing</summary><div>
+    <ul>
+      <li>Ta bort fästingen så fort som möjligt med fästingplockare eller pincett nära huden. Dra rakt ut.</li>
+      <li>Tvätta. Ringa in bettet med penna.</li>
+      <li>Röd ring som växer (från några dagar upp till veckor efteråt) eller feber → sök vård (borrelia, TBE).</li>
+    </ul>
+    <p><a class="w" data-w="Fästingar">Fästingar</a> · <a class="w" data-w="Borrelia">Borrelia</a> · <a class="w" data-w="Fästingburen encefalit">TBE</a></p>
+  </div></details>
+
+  <details><summary>Huggormsbett</summary><div>
+    <ul>
+      <li>Håll dig lugn och vila. Håll den bitna kroppsdelen stilla.</li>
+      <li>Ta av ringar, klocka och trånga skor innan det svullnar.</li>
+      <li>Ring 1177 – eller 112 vid allmänpåverkan (illamående, yrsel, svullnad i ansiktet) och alltid för barn.</li>
+      <li><b>Skär inte, sug inte, snör inte av.</b></li>
+    </ul>
+    <p><a class="w" data-w="Huggorm">Huggorm</a></p>
+  </div></details>
+
+  <details><summary>Allergisk reaktion</summary><div>
+    <ul>
+      <li>Lindrig (klåda, nässelutslag): antihistamin.</li>
+      <li>Svullnad i mun/svalg, andningsbesvär, yrsel = <b>anafylaxi</b> → adrenalinpenna om personen har en, ring 112. Låt personen sitta om hen har svårt att andas, annars ligga.</li>
+    </ul>
+    <p><a class="w" data-w="Anafylaxi">Anafylaxi</a></p>
+  </div></details>
+
+  <details><summary>Uttorkning, diarré, värmeslag</summary><div>
+    <p><b>Hemgjord vätskeersättning</b>: 1 liter rent vatten + 6 jämnstrukna teskedar socker + ½ jämnstruken tesked salt. Drick små klunkar ofta.</p>
+    <p><b>Värmeslag</b> (het, förvirrad, slutat svettas): in i skugga, kyl ner med vatten och fläkt, ring 112.</p>
+    <p><a class="w" data-w="Uttorkning">Uttorkning</a> · <a class="w" data-w="Värmeslag">Värmeslag</a></p>
+  </div></details>
+
+  <details><summary>Sår och skavsår</summary><div>
+    <ul>
+      <li>Skölj sår rent med rent vatten. Täck med kompress och plåster.</li>
+      <li>Tecken på infektion: rodnad som sprider sig, värme, var, feber → sök vård.</li>
+      <li>Skavsår: tejpa redan när det börjar bli varmt eller ömt. Skavsårsplåster på blåsor.</li>
+    </ul>
+    <p><a class="w" data-w="Skavsår">Skavsår</a></p>
+  </div></details>
+</section>
+
+<section id="lakemedel">
+  <h2>Enkla läkemedel och hemapotek</h2>
+  <div class="box warn">Doserna gäller <b>friska vuxna</b>. Läs alltid bipacksedeln. Barn, gravida, äldre och personer med andra sjukdomar eller mediciner: fråga 1177 eller apoteket.</div>
+  <table>
+    <tr><th>Läkemedel</th><th>Mot</th><th>Vuxendos</th></tr>
+    <tr><td><a class="w" data-w="Paracetamol">Paracetamol</a></td><td>Smärta, feber</td><td>500–1000 mg, högst 4 gånger per dygn. <b>Max 4 g per dygn</b> – överdos skadar levern.</td></tr>
+    <tr><td><a class="w" data-w="Ibuprofen">Ibuprofen</a></td><td>Smärta, feber, inflammation</td><td>200–400 mg med mat, högst 3 gånger per dygn (max 1200 mg). Undvik vid uttorkning, magsår, njursjukdom.</td></tr>
+    <tr><td>Antihistamin (cetirizin, loratadin)</td><td>Allergi, klåda, insektsbett</td><td>Enligt bipacksedel, oftast 1 tablett per dygn.</td></tr>
+    <tr><td>Loperamid</td><td>Diarré</td><td>Enligt bipacksedel. Inte vid feber eller blod i avföringen.</td></tr>
+    <tr><td>Vätskeersättning</td><td>Uttorkning, diarré</td><td>Se recept under Första hjälpen.</td></tr>
+  </table>
+  <h3>Packlista för hemapoteket</h3>
+  <ul>
+    <li>Plåster, sterila kompresser, tryckförband (”första förband”), elastisk binda</li>
+    <li>Sporttejp och skavsårsplåster</li>
+    <li>Avsnörande förband (tourniquet)</li>
+    <li>Sårtvätt (klorhexidin) eller koksaltlösning</li>
+    <li>Fästingplockare, pincett, sax, engångshandskar</li>
+    <li>Räddningsfilt</li>
+    <li>Paracetamol, ibuprofen, antihistamin, vätskeersättning</li>
+    <li>Egna receptläkemedel för minst en vecka</li>
+  </ul>
+</section>
+
+<section id="skydd">
+  <h2>Bygga skydd</h2>
+  <p>Kroppen förlorar värme på fyra sätt: genom <b>marken</b> (ledning), <b>vinden</b>, <b>väta</b> (avdunstning) och <b>strålning</b>. Ett bra skydd stoppar alla fyra. Håll dig <b>torr</b> – svettas inte i onödan, ta av lager innan du jobbar.</p>
+
+  <details open><summary>1. Välj plats</summary><div>
+    <ul>
+      <li>Torrt, i lä för vinden, nära ved och vatten.</li>
+      <li><b>Inte</b> i en svacka – kall luft rinner ner och samlas där.</li>
+      <li><b>Inte</b> under döda träd eller hängande grenar.</li>
+      <li><b>Inte</b> nära vatten som kan stiga, eller på en kal höjd vid åska.</li>
+    </ul>
+  </div></details>
+
+  <details open><summary>2. Isolera mot marken – viktigast av allt</summary><div>
+    <p>Lägg <b>20–30 cm</b> granris, löv, ljung eller mossa under dig – mer än du tror behövs. Lägg granriset med de böjda topparna uppåt, i lager som takpannor. Liggunderlag eller ryggsäck ovanpå.</p>
+  </div></details>
+
+  <details><summary>Vindskydd med presenning</summary><div>
+    <ol>
+      <li>Spänn en lina mellan två träd, ca 1 m upp.</li>
+      <li>Häng presenningen över linan och låt ena sidan gå snett ner till marken mot vinden. Fäst med pinnar eller stenar.</li>
+      <li>Öppningen bort från vinden. Gör en granrisbädd under.</li>
+      <li>Eld 1–1,5 m framför öppningen och en <b>reflexvägg</b> av staplade stockar bakom elden, så strålar värmen in mot dig.</li>
+    </ol>
+    <p><a class="w" data-w="Vindskydd">Vindskydd</a> · <a class="w" data-w="Presenning">Presenning</a></p>
+  </div></details>
+
+  <details><summary>Vindskydd av grenar (utan presenning)</summary><div>
+    <ol>
+      <li>Lägg en stadig stång (ås) mellan två träd eller i grenklykor, ca 1 m upp.</li>
+      <li>Luta raka stänger tätt mot åsen från vindsidan.</li>
+      <li>Täck med granris <b>nedifrån och upp</b>, så att varje lager överlappar det under som takpannor – då rinner regnet av.</li>
+      <li>Ju tjockare lager, desto bättre mot regn och vind.</li>
+    </ol>
+  </div></details>
+
+  <details><summary>Lövkoja (om du saknar eld)</summary><div>
+    <p>En smal ”A”-koja, bara lite större än du själv: en lång stång från en stubbe ned mot marken, sidostänger lutade mot den, och sedan en <b>meterhög</b> hög av löv och ris över. Fyll även insidan med torra löv. Kroppsvärmen räcker för att värma ett litet utrymme. Täpp till öppningen med en hög löv.</p>
+  </div></details>
+
+  <details><summary>Snöskydd – snögrotta och snöhög</summary><div>
+    <ol>
+      <li>Skotta ihop en hög med snö, ca 2 m hög och 3–4 m bred. Låt den sätta sig 1–2 timmar.</li>
+      <li>Stick in pinnar ca 30 cm långa runt om – när du gräver ut och når pinnarna är väggen tillräckligt tjock.</li>
+      <li>Gräv ingången <b>lägre</b> än sovytan, så rinner kall luft ut.</li>
+      <li>Gör ett <b>ventilationshål</b> i taket med en stav – och håll det öppet. Ljus eller kök inne utan ventilation ger kolmonoxidförgiftning.</li>
+      <li>Ha med spaden in, ifall det rasar.</li>
+    </ol>
+    <p><a class="w" data-w="Snögrotta">Snögrotta</a> · <a class="w" data-w="Igloo">Igloo</a></p>
+  </div></details>
+
+  <details><summary>Räddningsfilt</summary><div>
+    <p>Linda in dig med den blanka sidan inåt och klädlager utanför om möjligt. Den stoppar vind och strålning men isolerar inte mot marken – ligg på något.</p>
+  </div></details>
+</section>
+
+<section id="vatten">
+  <h2>Vatten</h2>
+  <p>En vuxen behöver 2–3 liter om dagen, mer vid värme och ansträngning. Mörkgul urin = drick mer.</p>
+  <h3>Hitta</h3>
+  <ul>
+    <li>Rinnande vatten (bäckar, källor) är bättre än stillastående.</li>
+    <li>Regnvatten – samla med presenning eller plast.</li>
+    <li>Snö och is – <b>smält</b> först. Att äta snö kyler ner dig.</li>
+  </ul>
+  <h3>Rena</h3>
+  <ol>
+    <li>Låt grumligt vatten sjunka och sila genom tyg först.</li>
+    <li><b>Koka</b> – en rullande kokning i minst 1 minut dödar bakterier, virus och parasiter.</li>
+    <li>Eller: vattenfilter (pumpfilter/sugrör) eller klortabletter – följ anvisningen och väntetiden.</li>
+    <li>Nödlösning: genomskinlig PET-flaska i direkt sol i minst 6 timmar.</li>
+  </ol>
+  <p><a class="w" data-w="Vattenrening">Vattenrening</a></p>
+</section>
+
+<section id="eld">
+  <h2>Eld</h2>
+  <div class="box warn">Kontrollera eldningsförbud. Elda inte på berghällar (de spricker) eller på torv och mossa (marken kan glöda vidare i dagar). Släck med vatten tills askan är kall.</div>
+  <h3>Samla allt innan du tänder</h3>
+  <ol>
+    <li><b>Tändmaterial</b>: <a class="w" data-w="Näver">näver</a> (brinner även när den är fuktig), tjärved från gamla tallstubbar, torra granbarrkvistar från stammens nedre del, <a class="w" data-w="Fnöske">fnöske</a>.</li>
+    <li><b>Tändved</b>: torra pinnar, tjocka som en blyertspenna – sedan tumtjocka.</li>
+    <li><b>Ved</b>: handledstjocka och större. Stående döda träd är torrare än ved på marken.</li>
+  </ol>
+  <h3>Tänd</h3>
+  <ul>
+    <li>Bygg en liten pyramid av tändved över tändmaterialet. Elden behöver luft – packa inte tätt.</li>
+    <li><a class="w" data-w="Eldstål">Eldstål</a>: skrapa gnistor rakt ner i nävertuss eller bomull med vaselin.</li>
+    <li>Lägg på gradvis grövre ved först när det brinner ordentligt.</li>
+  </ul>
+  <p><a class="w" data-w="Allemansrätten">Allemansrätten</a></p>
+</section>
+
+<section id="bar">
+  <h2>Bär</h2>
+  <div class="box danger"><b>Ät aldrig bär du inte säkert känner igen.</b> Några av Sveriges giftigaste växter har lockande röda eller svarta bär. Lär barn att aldrig äta bär utan att fråga.</div>
+  <h3>Ätliga</h3>
+  <table>
+    <tr><th>Bär</th><th>Känns igen på</th><th>Säsong</th></tr>
+    <tr><td><a class="w" data-w="Blåbär">Blåbär</a></td><td>Lågt ris i skogen, mörkblå bär med <b>blått</b> fruktkött</td><td>jul–aug</td></tr>
+    <tr><td><a class="w" data-w="Lingon">Lingon</a></td><td>Röda bär, ris med blanka, läderartade blad</td><td>aug–sep</td></tr>
+    <tr><td><a class="w" data-w="Hallon">Hallon</a></td><td>Taggiga skott, rött bär som lossnar ihåligt</td><td>jul–aug</td></tr>
+    <tr><td><a class="w" data-w="Smultron">Smultron</a></td><td>Små röda ”jordgubbar”, tredelade blad</td><td>jun–jul</td></tr>
+    <tr><td><a class="w" data-w="Hjortron">Hjortron</a></td><td>Myrar, ett gulorange bär per stängel</td><td>jul–aug</td></tr>
+    <tr><td><a class="w" data-w="Åkerbär">Åkerbär</a></td><td>Mörkrött, liknar litet hallon, norra Sverige</td><td>jul–aug</td></tr>
+    <tr><td><a class="w" data-w="Björnbär">Björnbär</a></td><td>Svart ”hallon” på taggiga snår, södra Sverige</td><td>aug–sep</td></tr>
+    <tr><td><a class="w" data-w="Kråkbär">Kråkbär</a></td><td>Svarta bär, ris med barrlika blad, smakar lite</td><td>aug–sep</td></tr>
+    <tr><td><a class="w" data-w="Tranbär">Tranbär</a></td><td>Röda bär på trådfina revor i myrar</td><td>sep–okt</td></tr>
+    <tr><td><a class="w" data-w="Nypon">Nypon</a></td><td>Rosens frukt. Ät skalet – ta bort kärnor och hår</td><td>sep–okt</td></tr>
+    <tr><td><a class="w" data-w="Havtorn">Havtorn</a></td><td>Orangea bär tätt längs taggiga grenar, kusten</td><td>aug–sep</td></tr>
+    <tr><td><a class="w" data-w="Rönn">Rönnbär</a></td><td>Orangeröda klasar. <b>Ät tillagade</b> – råa ger magbesvär</td><td>sep–okt</td></tr>
+  </table>
+
+  <h3>Giftiga – undvik</h3>
+  <table>
+    <tr><th>Växt</th><th>Känns igen på</th></tr>
+    <tr><td><a class="w" data-w="Tibast">Tibast</a></td><td>Röda bär som sitter <b>direkt på stammen</b>. Mycket giftig.</td></tr>
+    <tr><td><a class="w" data-w="Ormbär">Ormbär</a></td><td><b>Ett</b> blåsvart bär ovanför fyra blad i kors.</td></tr>
+    <tr><td><a class="w" data-w="Trolldruva">Trolldruva</a></td><td>Glänsande svarta bär i en klase, skuggig skog.</td></tr>
+    <tr><td><a class="w" data-w="Liljekonvalj">Liljekonvalj</a></td><td>Röda bär på stjälk mellan två breda blad.</td></tr>
+    <tr><td><a class="w" data-w="Besksöta">Besksöta</a></td><td>Klätterväxt, lila blommor, röda ovala bär.</td></tr>
+    <tr><td><a class="w" data-w="Idegran">Idegran</a></td><td>Barrträd, rött ”bär” runt ett frö. Frö och barr är mycket giftiga.</td></tr>
+    <tr><td><a class="w" data-w="Olvon">Olvon</a></td><td>Glansigt röda bär i klasar. Giftiga råa.</td></tr>
+    <tr><td><a class="w" data-w="Druvfläder">Druvfläder</a></td><td>Röda bär i täta klasar. Fröna är giftiga.</td></tr>
+    <tr><td><a class="w" data-w="Benved">Benved</a></td><td>Rosa ”kardinalsmössor” med orange frö.</td></tr>
+    <tr><td><a class="w" data-w="Brakved">Brakved</a></td><td>Bär som går från grönt via rött till svart.</td></tr>
+  </table>
+</section>
+
+<section id="svamp">
+  <h2>Svamp</h2>
+  <div class="box danger">
+    <b>Ät aldrig svamp du inte är 100 % säker på.</b> Några av de dödligaste svamparna ger symptom först efter flera dagar, när organen redan är skadade. Svamp ger dessutom nästan ingen energi – i ett nödläge är den inte värd risken.
+  </div>
+  <h3>Gyllene regler</h3>
+  <ul>
+    <li>Plocka bara arter du lärt dig med en kunnig person eller en bra svampbok.</li>
+    <li>Plocka <b>hela</b> svampen, med foten och basen – annars missar du kännetecken.</li>
+    <li><b>Vita skivor + ring på foten + strumpa vid basen</b> = flugsvamp. Rör inte.</li>
+    <li>Ät aldrig rå vildsvamp. Spara en svamp om du äter av en ny art.</li>
+    <li>Misstänkt svampförgiftning: ring 112 eller Giftinformation 010-456 67 00, även om personen mår bra.</li>
+  </ul>
+
+  <h3>Nybörjarsvampar</h3>
+  <table>
+    <tr><th>Svamp</th><th>Känns igen på</th><th>Förväxlas med</th></tr>
+    <tr><td><a class="w" data-w="Kantarell">Kantarell</a><br><span class="muted">jul–okt</span></td><td>Äggulegul. <b>Åsar</b> (inte skivor) som löper ner på foten. Fruktig doft.</td><td>Falsk kantarell (orange, äkta tunna skivor). Orangebrun giftspindling (rostbrun, skivor) – <b>dödlig</b>.</td></tr>
+    <tr><td><a class="w" data-w="Trattkantarell">Trattkantarell</a><br><span class="muted">sep–nov</span></td><td>Gråbrun hatt, ofta med hål i mitten. <b>Ihålig gul fot</b>. Åsar.</td><td><b>Toppig giftspindling – dödlig.</b> Har riktiga rostbruna skivor, spetsig hatt och massiv fot.</td></tr>
+    <tr><td><a class="w" data-w="Svart trumpetsvamp">Svart trumpetsvamp</a><br><span class="muted">aug–okt</span></td><td>Svart trumpet, slät eller rynkig utsida utan skivor. Lövskog.</td><td>Få farliga förväxlingar.</td></tr>
+    <tr><td><a class="w" data-w="Stensopp">Karl Johan</a><br><span class="muted">jul–sep</span></td><td><b>Rör</b> (svamp) under hatten, vita → gulgröna. Tjock fot med vitt nätmönster.</td><td>Gallsopp (rosa rör, mörkt nät, väldigt bitter) – inte farlig men oätlig.</td></tr>
+    <tr><td><a class="w" data-w="Blek taggsvamp">Blek taggsvamp</a><br><span class="muted">aug–okt</span></td><td><b>Taggar</b> under hatten, blekgul.</td><td>Få farliga förväxlingar.</td></tr>
+  </table>
+
+  <h3>Dödligt giftiga – lär dig känna igen</h3>
+  <ul>
+    <li><a class="w" data-w="Vit flugsvamp">Vit flugsvamp</a> – helt vit, vita skivor, ring, strumpa.</li>
+    <li><a class="w" data-w="Lömsk flugsvamp">Lömsk flugsvamp</a> – grönaktig hatt, vita skivor, ring, strumpa.</li>
+    <li><a class="w" data-w="Toppig giftspindling">Toppig giftspindling</a> – rostbrun, spetsig hatt, skivor. Förväxlas med trattkantarell.</li>
+    <li><a class="w" data-w="Orangebrun giftspindling">Orangebrun giftspindling</a> – orangebrun, rostbruna skivor.</li>
+    <li><a class="w" data-w="Stenmurkla">Stenmurkla</a> – veckig, hjärnlik hatt. Giftig.</li>
+    <li><a class="w" data-w="Röd flugsvamp">Röd flugsvamp</a> – röd med vita prickar. Giftig.</li>
+  </ul>
+</section>
+
+<section id="vaxter">
+  <h2>Ätliga växter</h2>
+  <div class="box danger"><b>Ät aldrig flockblommiga växter</b> (vita blomskärmar som ser ut som paraplyer). Odört, sprängört och hundkäx är svåra att skilja åt och odört och sprängört är dödligt giftiga.</div>
+  <table>
+    <tr><th>Växt</th><th>Hur</th></tr>
+    <tr><td><a class="w" data-w="Brännässla">Brännässla</a></td><td>Unga toppar. Koka eller förväll – då försvinner brännhåren. Rik på näring.</td></tr>
+    <tr><td><a class="w" data-w="Maskros">Maskros</a></td><td>Unga blad (beska), blommor, rötter. Hela växten ätlig.</td></tr>
+    <tr><td><a class="w" data-w="Harsyra">Harsyra</a></td><td>Tre hjärtformade blad, syrlig smak. Små mängder.</td></tr>
+    <tr><td><a class="w" data-w="Gran">Granskott</a></td><td>Ljusgröna nya skott på våren, råa eller i te.</td></tr>
+  </table>
+</section>
+
+<section id="signal">
+  <h2>Signaler och hitta rätt</h2>
+  <h3>Signalera</h3>
+  <ul>
+    <li><b>Tre av något</b> betyder nöd: tre eldar i en triangel, tre rökpelare, tre visselsignaler.</li>
+    <li><b>Alpin nödsignal</b>: 6 signaler (vissla, lampa) på en minut, en minuts paus, upprepa. Svaret är 3 signaler per minut.</li>
+    <li><b>SOS</b>: ··· ‒‒‒ ··· med ficklampa eller visselpipa.</li>
+    <li>En spegel eller blank yta syns på flera kilometers håll i sol.</li>
+    <li>Sprid ut färgglada kläder eller presenningar på öppen plats. Grön eld (granris) ger vit rök.</li>
+  </ul>
+  <h3>Hitta</h3>
+  <ul>
+    <li>Kartorna finns offline i programmet <b>GPXSee</b> på den här datorn.</li>
+    <li>Solen står ungefär i <b>söder</b> kl. 12 (kl. 13 sommartid), i öster på morgonen och i väster på kvällen.</li>
+    <li>Följ vattendrag nedströms – de leder oftast till bebyggelse och vägar.</li>
+    <li>Markera vägen med avbrutna kvistar eller stenrösen om du måste gå.</li>
+  </ul>
+  <p><a class="w" data-w="Kompass">Kompass</a> · <a class="w" data-w="SOS">SOS</a> · <a class="w" data-w="Orientering">Orientering</a></p>
+</section>
+
+<section id="wiki">
+  <h2>Alla wikilänkar</h2>
+  <p class="muted">Samma artiklar som ovan, samlade.</p>
+  <div id="wikilist"></div>
+</section>
+
+<p class="top"><a href="#hem">↑ Till menyn</a></p>
+</main>
+
+<script>
+  // Offline-Wikipedia körs av Kiwix på den här datorn. Filen heter wikipedia_sv.zim,
+  // därför blir sökvägen /content/wikipedia_sv/.
+  var KIWIX = "http://localhost:8080/content/wikipedia_sv/";
+  var ONLINE = "https://sv.wikipedia.org/w/index.php?search=";
+
+  var links = document.querySelectorAll("a.w");
+  var seen = {};
+  var all = [];
+  links.forEach(function (a) {
+    var title = a.getAttribute("data-w");
+    a.href = KIWIX + encodeURIComponent(title.replace(/ /g, "_"));
+    var web = document.createElement("a");
+    web.className = "web";
+    web.href = ONLINE + encodeURIComponent(title);
+    web.textContent = "webb";
+    a.after(web);
+    if (!seen[title]) { seen[title] = true; all.push(title); }
+  });
+
+  // Samlad lista
+  all.sort(function (x, y) { return x.localeCompare(y, "sv"); });
+  var list = document.getElementById("wikilist");
+  var ul = document.createElement("ul");
+  all.forEach(function (t) {
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = KIWIX + encodeURIComponent(t.replace(/ /g, "_"));
+    a.textContent = t;
+    var web = document.createElement("a");
+    web.className = "web";
+    web.href = ONLINE + encodeURIComponent(t);
+    web.textContent = "webb";
+    li.append(a, web);
+    ul.append(li);
+  });
+  list.append(ul);
+
+  // Filtrera: visa bara rader, detaljer och sektioner som innehåller sökordet
+  var filter = document.getElementById("filter");
+  var blocks = document.querySelectorAll("main section:not(#hem) details, main section:not(#hem) tr");
+  filter.addEventListener("input", function () {
+    var q = filter.value.trim().toLowerCase();
+    document.querySelectorAll("main section:not(#hem)").forEach(function (s) {
+      s.classList.toggle("hidden", q !== "" && s.textContent.toLowerCase().indexOf(q) === -1);
+    });
+    blocks.forEach(function (b) {
+      if (b.closest("#wiki")) return;
+      if (q === "") { b.classList.remove("hidden"); return; }
+      var hit = b.textContent.toLowerCase().indexOf(q) !== -1;
+      if (b.tagName === "DETAILS") { b.classList.toggle("hidden", !hit); if (hit) b.open = true; }
+      else if (b.tagName === "TR") { b.classList.toggle("hidden", !hit && b.querySelector("td")); }
+    });
+  });
+
+  // Ljust/mörkt läge
+  var themeBtn = document.getElementById("theme");
+  try { var saved = localStorage.getItem("theme"); if (saved) document.documentElement.setAttribute("data-theme", saved); } catch (e) {}
+  themeBtn.addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    var dark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  });
+</script>
+</body>
+</html>
