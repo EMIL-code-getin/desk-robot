@@ -1,4 +1,4 @@
-# Stream deck: 6 tangenter + vridratt, ESP32-C6
+# Stream deck: 6 tangenter + vridratt, XIAO ESP32-C3
 
 En liten makropanel med sex mekaniska tangenter och en rotary encoder med
 tryckknapp. Den kopplar upp sig mot datorn trådlöst som ett **Bluetooth-tangentbord
@@ -18,9 +18,9 @@ utan support.
         fram
 ```
 
-**Varför Bluetooth och inte USB?** ESP32-C6 saknar USB-enhetsstöd: USB-porten
+**Varför Bluetooth och inte USB?** ESP32-C3 saknar USB-enhetsstöd: USB-porten
 är bara en seriell port/JTAG för programmering och kan inte bli ett
-USB-tangentbord. Däremot har C6:an Bluetooth LE, och ett BLE-tangentbord
+USB-tangentbord. Däremot har C3:an Bluetooth LE, och ett BLE-tangentbord
 fungerar direkt i Windows, macOS, Linux, Android och iOS. USB-kabeln används
 för ström och för att ladda upp koden.
 
@@ -47,7 +47,7 @@ stream-deck/
 
 | Antal | Del | Kommentar |
 |---|---|---|
-| 1 | Seeed Studio XIAO ESP32C6 | Chassit är måttsatt för den. ESP32-C6-DevKitC-1 fungerar med samma kod, men då måste kortmåtten i `.scad`-filen ändras (se nedan). |
+| 1 | Seeed Studio XIAO ESP32C3 | Chassit är måttsatt för XIAO-formatet. Koden fungerar också med XIAO ESP32C6 och ESP32-C6-DevKitC-1 (se `platformio.ini`). |
 | 6 | Mekaniska switchar, MX-kompatibla | t.ex. Gateron, Kailh, Cherry. Med 3 eller 5 ben spelar ingen roll. |
 | 6 | Keycaps 1u, MX-fäste | |
 | 1 | EC11 rotary encoder **med tryckknapp**, D-axel, 20 mm axellängd | Mutter och bricka brukar följa med. |
@@ -55,7 +55,7 @@ stream-deck/
 | 2 | M3×12 skruv | bak, genom lutningsfoten (utan foten: 4× M3×8) |
 | 4 | Gummifötter, max 10 mm i diameter | valfritt |
 | – | Tunn kopplingstråd (26–28 AWG), lödpenna | |
-| 1 | 3 mm lysdiod + 330 Ω motstånd | valfritt, statuslampa i locket |
+| 1 | 3 mm lysdiod + 330 Ω motstånd | Rekommenderas. XIAO ESP32C3 har ingen egen lampa, så det här är enda sättet att se lager och Bluetooth-status. |
 
 ## 1. Skriv ut chassit (Bambu P2S)
 
@@ -101,19 +101,24 @@ Vanliga ändringar:
 Varje switch kopplas mellan sin pinne och GND. Inga motstånd eller dioder
 behövs, eftersom chipets interna pull-up-motstånd används.
 
-| Funktion | GPIO | XIAO ESP32C6 | DevKitC-1 |
-|---|---|---|---|
-| Tangent 1 | 0 | D0 | 0 |
-| Tangent 2 | 1 | D1 | 1 |
-| Tangent 3 | 2 | D2 | 2 |
-| Tangent 4 | 21 | D3 | 21 |
-| Tangent 5 | 22 | D4 | 22 |
-| Tangent 6 | 23 | D5 | 23 |
-| Encoder A | 19 | D8 | 19 |
-| Encoder B | 20 | D9 | 20 |
-| Encoder tryck | 18 | D10 | 18 |
-| Statuslampa (valfri) | 17 | D7 | – |
-| GND | – | GND | GND |
+| Funktion | XIAO ESP32C3 | (GPIO) |
+|---|---|---|
+| Tangent 1 | D0 | 2 |
+| Tangent 2 | D1 | 3 |
+| Tangent 3 | D2 | 4 |
+| Tangent 4 | D3 | 5 |
+| Tangent 5 | D4 | 6 |
+| Tangent 6 | D5 | 7 |
+| Encoder A | D8 | 8 |
+| Encoder B | D10 | 10 |
+| Encoder tryck | D7 | 20 |
+| Statuslampa (rekommenderas) | D6 | 21 |
+| GND | GND | – |
+
+Tangenterna sitter på pinnraden till vänster (D0–D5). Encodern sitter på den
+högra raden (D7, D8, D10), som också har GND. **D9 används inte med flit:** den
+är kortets BOOT-knapp, och om den hålls låg vid start går kortet i
+programmeringsläge.
 
 ```
   XIAO D0 ────── switch 1 ──┐
@@ -126,11 +131,26 @@ behövs, eftersom chipets interna pull-up-motstånd används.
   EC11, sidan med 3 ben:    │
      A ──── D8              │
      C (mitten) ────────────┤
-     B ──── D9              │
+     B ──── D10             │
   EC11, sidan med 2 ben:    │
-     SW ─── D10             │
+     SW ─── D7              │
      SW ────────────────────┘
+
+  XIAO D6 ── 330 Ω ── lysdiod (långa benet) … (korta benet) ── GND
 ```
+
+<details>
+<summary>Pinnar för ESP32-C6 (XIAO ESP32C6 / DevKitC-1)</summary>
+
+| Funktion | XIAO ESP32C6 | GPIO / DevKitC-1 |
+|---|---|---|
+| Tangent 1–6 | D0–D5 | 0, 1, 2, 21, 22, 23 |
+| Encoder A | D8 | 19 |
+| Encoder B | D9 | 20 |
+| Encoder tryck | D10 | 18 |
+| Statuslampa (valfri) | D7 | 17 |
+
+</details>
 
 Tips: dra en enda GND-tråd i en slinga från switch till switch och vidare till
 encodern. Då blir det bara en tråd per switch till kortet.
@@ -147,10 +167,10 @@ encodern. Då blir det bara en tråd per switch till kortet.
 6. Skruva ihop: M3×8 fram, M3×12 bak genom lutningsfoten. Tryck på ratten
    och keycaps.
 
-XIAO:ns inbyggda lampa syns bara när chassit är öppet. Vill du se lager och
-anslutning utifrån behöver du den valfria statuslampan: löd en 3 mm lysdiod i hålet bredvid ratten, med anoden
-(det långa benet) via ett 330 Ω motstånd till D7 och katoden till GND. Sätt
-sedan `EXTRA_LED_PIN 17` i `config.h`.
+**Statuslampa:** XIAO ESP32C3 har ingen lampa som koden kan styra. Tryck in
+en 3 mm lysdiod i hålet bredvid ratten. Koppla det långa benet via ett 330 Ω
+motstånd till D6 och det korta benet till GND. Koden använder D6 som standard,
+så ingen ändring behövs.
 
 ## 3. Ladda upp koden
 
@@ -164,11 +184,12 @@ cd stream-deck/firmware
 ```
 
 ```bash
-pio run -e xiao_esp32c6 -t upload
+pio run -e xiao_esp32c3 -t upload
 ```
 
-För DevKitC-1 använder du `-e esp32c6_devkitc`. Första bygget tar några minuter,
-eftersom ESP32-C6-verktygen och NimBLE-biblioteket laddas ner.
+`xiao_esp32c3` är standard, så det räcker även med `pio run -t upload`. Första
+bygget tar några minuter, eftersom ESP32-verktygen och NimBLE-biblioteket
+laddas ner. (För C6-kort finns `-e xiao_esp32c6` och `-e esp32c6_devkitc`.)
 
 Vill du följa loggen (vilka knappar som trycks, anslutning och lager):
 
@@ -187,18 +208,18 @@ pio device monitor
 2. Skapa en skiss som heter `stream_deck`. Kopiera innehållet i `src/main.cpp`
    till `stream_deck.ino` och lägg `ble_hid.cpp`, `ble_hid.h` och allt i
    `include/` i samma mapp.
-3. Har du DevKitC-1: lägg till `#define BOARD_ESP32C6_DEVKITC` överst i
-   `config.h`. För XIAO behövs ingen ändring.
-4. Välj kortet (*XIAO_ESP32C6* eller *ESP32C6 Dev Module*) och ladda upp.
+3. Välj kortet *XIAO_ESP32C3* och ladda upp. Koden känner själv av att det är
+   en C3:a och väljer rätt pinnar.
 
 </details>
 
 ## 4. Para ihop med datorn
 
-1. Ge panelen ström via USB-C, från datorn eller en mobilladdare. Lampan
-   blinkar kort var 1,5:e sekund medan den väntar på en anslutning.
+1. Ge panelen ström via USB-C, från datorn eller en mobilladdare. Om du har
+   monterat statuslampan blinkar den kort var 1,5:e sekund medan panelen
+   väntar på en anslutning.
 2. På datorn: **Inställningar → Bluetooth → Lägg till enhet**. Välj
-   **Stream Deck C6**.
+   **Stream Deck**.
 3. Klart. Nästa gång ansluter den automatiskt.
 
 **Byta dator / glömma gamla parkopplingar:** håll in tangent 1 och ratten

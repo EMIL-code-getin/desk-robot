@@ -8,7 +8,7 @@
 // ============================================================================
 // The name shown when you pair. If you change it after pairing, remove the
 // device on the computer and pair again.
-#define DEVICE_NAME  "Stream Deck C6"
+#define DEVICE_NAME  "Stream Deck"
 #define MANUFACTURER "DIY"
 
 // ============================================================================
@@ -18,7 +18,38 @@
 // to GND, A and B to the pins below, and the push switch between ENC_SW and
 // GND. No resistors or diodes: the chip's internal pull-ups are used.
 //
-// The same GPIO numbers exist on both supported boards. Labels on the XIAO:
+// The board is picked by the PlatformIO environment (platformio.ini). In the
+// Arduino IDE it falls back to the chip: ESP32-C3 -> XIAO ESP32C3, ESP32-C6 ->
+// XIAO ESP32C6.
+#if !defined(BOARD_XIAO_ESP32C3) && !defined(BOARD_XIAO_ESP32C6) && \
+    !defined(BOARD_ESP32C6_DEVKITC)
+  #include <sdkconfig.h>
+  #if defined(CONFIG_IDF_TARGET_ESP32C3)
+    #define BOARD_XIAO_ESP32C3
+  #else
+    #define BOARD_XIAO_ESP32C6
+  #endif
+#endif
+
+#if defined(BOARD_XIAO_ESP32C3)
+// Seeed XIAO ESP32C3. Keys on the left row of pins, encoder on the right row
+// next to GND.
+//
+//   Function   XIAO pin   GPIO
+//   Key 1..6   D0..D5     2, 3, 4, 5, 6, 7
+//   Encoder A  D8         8
+//   Encoder B  D10        10
+//   Enc. push  D7         20
+//
+// Unused on purpose: D9 (GPIO9 = BOOT button; held low at power-on the chip
+// starts in download mode) and D6 (GPIO21 = serial TX, free for an LED).
+static const uint8_t KEY_PINS[NUM_KEYS] = {2, 3, 4, 5, 6, 7};
+#define ENC_A_PIN  8
+#define ENC_B_PIN  10
+#define ENC_SW_PIN 20
+
+#else
+// ESP32-C6 (XIAO ESP32C6 or DevKitC-1; same GPIO numbers on both):
 //
 //   Function   GPIO   XIAO ESP32C6   DevKitC-1 header
 //   Key 1       0       D0             0
@@ -36,6 +67,7 @@ static const uint8_t KEY_PINS[NUM_KEYS] = {0, 1, 2, 21, 22, 23};
 #define ENC_A_PIN  19
 #define ENC_B_PIN  20
 #define ENC_SW_PIN 18
+#endif
 
 // If turning right lowers the volume, swap A/B here instead of re-soldering.
 #define ENC_REVERSE false
@@ -48,18 +80,26 @@ static const uint8_t KEY_PINS[NUM_KEYS] = {0, 1, 2, 21, 22, 23};
 // ============================================================================
 // Status LED
 // ============================================================================
+// XIAO ESP32C3: no user LED on the board (only the charge LED), so fit the
+//               external LED below if you want to see layers and pairing.
 // XIAO ESP32C6: yellow user LED on GPIO15, lit when the pin is LOW.
 // DevKitC-1:    RGB LED on GPIO8 (driven as a single-pixel WS2812).
+//
 // EXTRA_LED_PIN: optional 3 mm LED in the case's top hole (anode to this pin
-// through a 330 ohm resistor, cathode to GND). -1 = not fitted. GPIO17 is
-// XIAO pin D7.
+// through a 330 ohm resistor, cathode to GND). -1 = not fitted.
+// Default on the XIAO ESP32C3 is GPIO21 (D6); driving it is harmless if no
+// LED is fitted. On the XIAO ESP32C6, D7 (GPIO17) is a good choice.
 #if defined(BOARD_ESP32C6_DEVKITC)
   #define STATUS_LED_RGB_PIN 8
-#else
+#elif defined(BOARD_XIAO_ESP32C6)
   #define STATUS_LED_PIN       15
   #define STATUS_LED_ACTIVE_LOW true
 #endif
-#define EXTRA_LED_PIN -1
+#if defined(BOARD_XIAO_ESP32C3)
+  #define EXTRA_LED_PIN 21
+#else
+  #define EXTRA_LED_PIN -1
+#endif
 
 // ============================================================================
 // Timing

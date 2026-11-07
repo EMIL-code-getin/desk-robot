@@ -1,5 +1,5 @@
 // Stream deck case: 6 MX-style keys (3 x 2) + EC11 rotary encoder,
-// ESP32-C6 board (default: Seeed XIAO ESP32C6) inside, USB-C at the back.
+// Seeed XIAO ESP32C3 (or XIAO ESP32C6, same size) inside, USB-C at the back.
 //
 // Parts (choose with `part`, or use the ready STLs in stl/):
 //   "top"    shell with switch plate. Print upside down (flat top on the bed),
@@ -45,7 +45,7 @@ enc_tab = false;          // blind slot for the EC11 anti-rotation tab; by
 led_hole = 3.2;           // optional 3 mm status LED, 0 = none
 
 /* [Board] */
-// Seeed XIAO ESP32C6: 17.8 mm across the USB-C end, 21 mm long. For another
+// Seeed XIAO ESP32C3/C6: 17.8 mm across the USB-C end, 21 mm long. For another
 // board, measure it and put width (across the USB port) and length here.
 board_w = 17.8;
 board_l = 21.0;

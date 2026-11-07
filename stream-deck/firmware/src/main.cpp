@@ -1,4 +1,4 @@
-// Stream deck firmware: 6 keys + EC11 rotary encoder on an ESP32-C6,
+// Stream deck firmware: 6 keys + EC11 rotary encoder on an ESP32-C3 or C6,
 // connected to the computer as a Bluetooth keyboard with media keys.
 //
 // Everything you normally change (pins, keymap, name) is in include/config.h.
@@ -104,7 +104,7 @@ void writeLed(int state) {
   uint8_t div = state == 2 ? 4 : 64;  // bright = 1/4, dim = 1/64 of full
   if (state == 0) rgbLedWrite(STATUS_LED_RGB_PIN, 0, 0, 0);
   else rgbLedWrite(STATUS_LED_RGB_PIN, c[0] / div, c[1] / div, c[2] / div);
-#else
+#elif defined(STATUS_LED_PIN)
   digitalWrite(STATUS_LED_PIN, (state == 2) != STATUS_LED_ACTIVE_LOW);
 #endif
 #if EXTRA_LED_PIN >= 0

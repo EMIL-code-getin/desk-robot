@@ -1,7 +1,7 @@
-// Bluetooth LE HID: makes the ESP32-C6 look like a keyboard with media keys.
+// Bluetooth LE HID: makes the ESP32 look like a keyboard with media keys.
 //
-// The ESP32-C6 has no USB device peripheral (only USB serial/JTAG), so it
-// cannot be a USB keyboard. Bluetooth works with Windows, macOS, Linux,
+// The ESP32-C3 and C6 have no USB device peripheral (only USB serial/JTAG), so they
+// cannot be USB keyboards. Bluetooth works with Windows, macOS, Linux,
 // Android and iOS without any driver or companion app.
 #pragma once
 #include <stdint.h>
