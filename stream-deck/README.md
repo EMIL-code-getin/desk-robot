@@ -34,6 +34,7 @@ stream-deck/
 │   │   ├── keycodes.h            tangentkoder (KEY_F13, MEDIA_VOL_UP ...)
 │   │   └── deck.cpp, ble_hid.cpp, display.cpp …
 │   └── platformio.ini            om du hellre använder PlatformIO
+├── docs/pinout.html             detaljerad pinout med bilder
 └── case/
     ├── xiao_tray.scad       bricka som håller XIAO:n i chassits kortficka
     └── stl/xiao_tray.stl
@@ -90,6 +91,10 @@ behöva 14. Tangenterna kopplas därför som en **matris med 3 rader och
 | OLED SDA / SCL | D4 / D5 |
 | OLED VCC | **3V3** (inte 5V) |
 | OLED GND, encoderns mittben, encoderns tryckknapp | GND |
+
+> **Detaljerad pinout med bilder:** öppna [`docs/pinout.html`](docs/pinout.html)
+> i webbläsaren. Där finns XIAO:ns alla pinnar, matrisen sedd både ovanifrån
+> och underifrån (när du löder), diodens riktning, encodern och displayen.
 
 ### Tangentmatrisen
 

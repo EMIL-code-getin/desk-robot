@@ -1,0 +1,485 @@
+<title>Macropad Pinout</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of datasheet-style sections; diagrams scroll sideways on phones. */
+:root {
+  --paper: #f5f6f2;
+  --ink: #1c211e;
+  --muted: #5e6862;
+  --rule: #d4d9d3;
+  --panel: #ffffff;
+  --pcb: #26312c;
+  --pcb-ink: #c9d6cf;
+  --pad: #c8a24a;
+  --metal: #a9b0ad;
+  --chip: #121614;
+
+  /* wire colours, one per signal group */
+  --w-row: #2463d6;
+  --w-col: #c79300;
+  --w-enc: #8247c9;
+  --w-i2c: #13945a;
+  --w-pwr: #d33a3a;
+  --w-gnd: #1c211e;
+  --w-nc: #a3aaa6;
+
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #151917; --ink: #e4ebe6; --muted: #98a39c; --rule: #2e3631; --panel: #1c211e;
+    --pcb: #2c3a33; --pcb-ink: #c9d6cf; --pad: #d6b25c; --metal: #7f8784; --chip: #0b0e0c;
+    --w-row: #5b93ff; --w-col: #e8b62a; --w-enc: #b083f0; --w-i2c: #3cc584; --w-pwr: #ff6b6b;
+    --w-gnd: #d8dfda; --w-nc: #66706a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #151917; --ink: #e4ebe6; --muted: #98a39c; --rule: #2e3631; --panel: #1c211e;
+  --pcb: #2c3a33; --pcb-ink: #c9d6cf; --pad: #d6b25c; --metal: #7f8784; --chip: #0b0e0c;
+  --w-row: #5b93ff; --w-col: #e8b62a; --w-enc: #b083f0; --w-i2c: #3cc584; --w-pwr: #ff6b6b;
+  --w-gnd: #d8dfda; --w-nc: #66706a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 40px;
+}
+header { display: grid; gap: 8px; }
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1 {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 800;
+  font-size: clamp(30px, 6vw, 46px);
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+}
+h2 {
+  font-family: var(--display);
+  font-stretch: 80%;
+  font-weight: 750;
+  font-size: 24px;
+  margin: 0;
+  text-wrap: balance;
+}
+h3 { font-size: 16px; margin: 0; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); max-width: 70ch; }
+section { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 22px; }
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sw { width: 22px; height: 4px; border-radius: 2px; display: inline-block; }
+
+.diagram {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.diagram svg { display: block; width: 100%; height: auto; }
+.diagram.wide svg { min-width: 760px; }
+.diagram.mid svg { min-width: 380px; }
+.caption { font-size: 13px; color: var(--muted); }
+
+.twocol { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.twocol > * { min-width: 0; display: grid; gap: 8px; align-content: start; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.pin { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+td.gpio { font-family: var(--mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+td .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.note { color: var(--muted); font-size: 13px; }
+
+.warn {
+  display: grid; gap: 6px;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--w-pwr);
+  background: var(--panel);
+  padding: 12px 14px;
+  border-radius: 4px;
+}
+ul.tight { margin: 0; padding-left: 20px; display: grid; gap: 4px; max-width: 72ch; }
+
+/* SVG text and shapes, coloured from the theme tokens */
+svg text { font-family: var(--body); fill: var(--ink); }
+svg .t-mono { font-family: var(--mono); }
+svg .t-muted { fill: var(--muted); }
+svg .t-pcb { fill: var(--pcb-ink); font-family: var(--mono); }
+svg .t-onchip { fill: var(--pcb-ink); font-family: var(--mono); }
+svg .pcb { fill: var(--pcb); }
+svg .pad { fill: var(--pad); }
+svg .metal { fill: var(--metal); }
+svg .chip { fill: var(--chip); }
+svg .panel { fill: var(--panel); }
+svg .outline { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+svg .dashed { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg .key { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+svg .rule { stroke: var(--rule); }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Stream deck · Seeed XIAO ESP32-C3 · Macropad-chassit</div>
+    <h1>Pinout och kopplingsschema</h1>
+    <p class="lede">Alla 14 pinnar på XIAO:n, vart varje tråd ska, och hur tangentmatrisen ser ut både ovanifrån och underifrån när du löder. Samma pinnar som i <code>config.h</code>.</p>
+    <div class="legend" aria-label="Trådfärger">
+      <span><i class="sw" style="background:var(--w-row)"></i>Rader (blå)</span>
+      <span><i class="sw" style="background:var(--w-col)"></i>Kolumner (gul)</span>
+      <span><i class="sw" style="background:var(--w-enc)"></i>Encoder (lila)</span>
+      <span><i class="sw" style="background:var(--w-i2c)"></i>OLED-data (grön)</span>
+      <span><i class="sw" style="background:var(--w-pwr)"></i>3,3 V (röd)</span>
+      <span><i class="sw" style="background:var(--w-gnd)"></i>GND (svart)</span>
+      <span><i class="sw" style="background:var(--w-nc)"></i>Används inte</span>
+    </div>
+    <p class="note">Färgerna är ett förslag. Använd gärna samma färger på trådarna, så blir felsökningen enklare.</p>
+  </header>
+
+  <section>
+    <h2>XIAO ESP32-C3</h2>
+    <p>Sett ovanifrån (komponentsidan), med USB-C uppåt. Så ligger kortet i brickan: USB-C mot chassits bakvägg. Vänstra raden (D0–D6) är då på displayens sida och högra raden (5V–D7) på rattens sida.</p>
+    <div class="diagram wide"><svg id="xiao" viewBox="0 0 900 320" role="img" aria-label="XIAO ESP32-C3 pinout med funktioner"></svg></div>
+    <p class="caption">Rad- och kolumnnamn följer tangenternas numrering: tangent 1 är uppe till vänster, närmast displayen.</p>
+  </section>
+
+  <section>
+    <h2>Alla anslutningar</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>XIAO</th><th>GPIO</th><th>Kopplas till</th><th>Tråd</th><th>Att tänka på</th></tr></thead>
+        <tbody>
+          <tr><td class="pin">D0</td><td class="gpio">2</td><td>Kolumn 1: switch 1, 4, 7</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Boot-pinne, ofarlig som kolumn</td></tr>
+          <tr><td class="pin">D1</td><td class="gpio">3</td><td>Encoder A</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note"></td></tr>
+          <tr><td class="pin">D2</td><td class="gpio">4</td><td>Encoder B</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Byt A/B med <code>ENC_REVERSE</code> om ratten går baklänges</td></tr>
+          <tr><td class="pin">D3</td><td class="gpio">5</td><td>Encoderns tryckknapp, ena benet</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Andra benet till GND</td></tr>
+          <tr><td class="pin">D4</td><td class="gpio">6</td><td>OLED SDA</td><td><i class="dot" style="background:var(--w-i2c)"></i>grön</td><td class="note">I2C data</td></tr>
+          <tr><td class="pin">D5</td><td class="gpio">7</td><td>OLED SCL</td><td><i class="dot" style="background:var(--w-i2c)"></i>grön</td><td class="note">I2C klocka</td></tr>
+          <tr><td class="pin">D6</td><td class="gpio">21</td><td>Rad 3: dioderna från switch 7, 8, 9</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport TX, ofarligt</td></tr>
+          <tr><td class="pin">D7</td><td class="gpio">20</td><td>Rad 2: dioderna från switch 4, 5, 6</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport RX</td></tr>
+          <tr><td class="pin">D8</td><td class="gpio">8</td><td>Kolumn 2: switch 2, 5, 8</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Boot-pinne, ofarlig som kolumn</td></tr>
+          <tr><td class="pin">D9</td><td class="gpio">9</td><td>Kolumn 3: switch 3, 6, 9</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Samma pinne som BOOT-knappen</td></tr>
+          <tr><td class="pin">D10</td><td class="gpio">10</td><td>Rad 1: dioderna från switch 1, 2, 3</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note"></td></tr>
+          <tr><td class="pin">3V3</td><td class="gpio">–</td><td>OLED VCC</td><td><i class="dot" style="background:var(--w-pwr)"></i>röd</td><td class="note">Enda strömtråden</td></tr>
+          <tr><td class="pin">GND</td><td class="gpio">–</td><td>OLED GND, encoder C (mittbenet), encoderns tryckknapp (andra benet)</td><td><i class="dot" style="background:var(--w-gnd)"></i>svart</td><td class="note">Switcharna ska <b>inte</b> till GND</td></tr>
+          <tr><td class="pin">5V</td><td class="gpio">–</td><td>Ingenting</td><td><i class="dot" style="background:var(--w-nc)"></i>–</td><td class="note">5 V från USB, kan skada displayen</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Totalt 15 trådar till XIAO:n: 3 rader, 3 kolumner, 3 encoder, 2 OLED-data, 3V3 och GND. GND-tråden delas: dra den till encodern och vidare till displayen.</p>
+  </section>
+
+  <section>
+    <h2>Tangentmatrisen</h2>
+    <p>Varje switch har två ben. Det ena går till tangentens <b>kolumn</b> (gul), det andra via en diod till tangentens <b>rad</b> (blå). Dra en gul tråd lodrätt genom varje kolumn och en blå tråd vågrätt genom varje rad.</p>
+    <div class="twocol">
+      <div>
+        <h3>Ovanifrån</h3>
+        <div class="diagram mid"><svg id="m-top" viewBox="0 0 410 480" role="img" aria-label="Tangentmatris sedd ovanifrån"></svg></div>
+        <p class="caption">Så som du ser panelen när den används. Displayen och ratten är bak.</p>
+      </div>
+      <div>
+        <h3>Underifrån, när du löder</h3>
+        <div class="diagram mid"><svg id="m-bottom" viewBox="0 0 410 480" role="img" aria-label="Tangentmatris sedd underifrån, spegelvänd"></svg></div>
+        <p class="caption">Locket vänt upp och ned. Allt är spegelvänt: tangent 1 och displayen ligger nu till höger.</p>
+      </div>
+    </div>
+
+    <div class="twocol">
+      <div>
+        <h3>Dioden: svarta ringen mot raden</h3>
+        <div class="diagram mid"><svg id="diode" viewBox="0 0 400 130" role="img" aria-label="Diodens riktning"></svg></div>
+        <p class="note">Ström går från kolumnen, genom switchen och dioden, till raden. Vänd en diod fel och den tangenten gör ingenting.</p>
+      </div>
+      <div>
+        <h3>Vilken tråd går var</h3>
+        <div class="table-wrap">
+          <table style="min-width:0">
+            <thead><tr><th>Tangent</th><th>Kolumn</th><th>Rad</th></tr></thead>
+            <tbody id="keytable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Encoder och display</h2>
+    <div class="twocol">
+      <div>
+        <h3>EC11 rotary encoder</h3>
+        <div class="diagram mid"><svg id="ec11" viewBox="0 0 400 300" role="img" aria-label="EC11 encoder pinout"></svg></div>
+        <p class="note">Sedd ovanifrån med axeln mot dig och 3-bens-sidan nedåt. Mittbenet C går alltid till GND. Spelar ingen roll vilket ytterben som blir A eller B; går ratten baklänges, sätt <code>ENC_REVERSE true</code>.</p>
+      </div>
+      <div>
+        <h3>OLED 0,96" (SunFounder)</h3>
+        <div class="diagram mid"><svg id="oled" viewBox="0 0 400 300" role="img" aria-label="OLED-modulens pinnar"></svg></div>
+        <p class="note">Läs etiketterna på din modul. Ordningen GND–VCC–SCL–SDA är vanligast, men vissa moduler har VCC först. Stiftlisten ska mot chassits bakkant (USB-sidan).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Innan du sätter i USB-kabeln</h2>
+    <div class="warn">
+      <ul class="tight">
+        <li><b>5V är inte inkopplad.</b> Displayen ska till 3V3.</li>
+        <li><b>Inga switchar till GND.</b> I en matris går switcharna bara mellan kolumn och rad.</li>
+        <li><b>Antennen sitter i.</b> XIAO FPC Antenna A-01 på u.FL-uttaget, platt mot en innervägg.</li>
+        <li><b>Rör inte BOOT-knappen</b> medan panelen är igång. Den sitter på samma pinne som kolumn 3 och ser ut som ett tryck på tangent 3, 6 eller 9.</li>
+        <li><b>Testa före ihopskruvning:</b> Serial Monitor (115200) visar <code>[oled] ok</code> och <code>key N down</code> för varje tangent du trycker.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  function el(parent, tag, attrs, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    parent.appendChild(e);
+    return e;
+  }
+  const W = {
+    row: "var(--w-row)", col: "var(--w-col)", enc: "var(--w-enc)", i2c: "var(--w-i2c)",
+    pwr: "var(--w-pwr)", gnd: "var(--w-gnd)", nc: "var(--w-nc)"
+  };
+
+  // ---------------- XIAO pinout ----------------
+  (function xiao() {
+    const s = document.getElementById("xiao");
+    const bx = 361, by = 52, bw = 178, bh = 236;
+    const left = [
+      ["D0", "GPIO2", "Kolumn 1 · switch 1 4 7", "col"],
+      ["D1", "GPIO3", "Encoder A", "enc"],
+      ["D2", "GPIO4", "Encoder B", "enc"],
+      ["D3", "GPIO5", "Encoder tryck", "enc"],
+      ["D4", "GPIO6", "OLED SDA", "i2c"],
+      ["D5", "GPIO7", "OLED SCL", "i2c"],
+      ["D6", "GPIO21", "Rad 3 · switch 7 8 9", "row"],
+    ];
+    const right = [
+      ["5V", "", "Används inte", "nc"],
+      ["GND", "", "GND: OLED, encoder C + SW", "gnd"],
+      ["3V3", "", "OLED VCC", "pwr"],
+      ["D10", "GPIO10", "Rad 1 · switch 1 2 3", "row"],
+      ["D9", "GPIO9", "Kolumn 3 · switch 3 6 9", "col"],
+      ["D8", "GPIO8", "Kolumn 2 · switch 2 5 8", "col"],
+      ["D7", "GPIO20", "Rad 2 · switch 4 5 6", "row"],
+    ];
+    // board
+    el(s, "rect", { x: bx, y: by, width: bw, height: bh, rx: 12, class: "pcb" });
+    // USB-C
+    el(s, "rect", { x: 410, y: 36, width: 80, height: 34, rx: 9, class: "metal" });
+    el(s, "rect", { x: 424, y: 46, width: 52, height: 14, rx: 7, class: "chip" });
+    el(s, "text", { x: 450, y: 24, "text-anchor": "middle", "font-size": 13, "font-weight": 700 }, "USB-C · mot bakväggen");
+    // chip and label
+    el(s, "rect", { x: 412, y: 150, width: 76, height: 76, rx: 4, class: "chip" });
+    el(s, "text", { x: 450, y: 186, "text-anchor": "middle", "font-size": 11, class: "t-onchip" }, "ESP32");
+    el(s, "text", { x: 450, y: 201, "text-anchor": "middle", "font-size": 11, class: "t-onchip" }, "-C3");
+    el(s, "text", { x: 450, y: 268, "text-anchor": "middle", "font-size": 11, class: "t-pcb" }, "XIAO");
+
+    const y0 = 96, step = 26;
+    function side(list, isLeft) {
+      list.forEach((p, i) => {
+        const y = y0 + i * step;
+        const color = W[p[3]];
+        const padX = isLeft ? bx + 10 : bx + bw - 10;
+        // leader wire
+        el(s, "line", {
+          x1: isLeft ? bx : bx + bw, y1: y, x2: isLeft ? 334 : 566, y2: y,
+          stroke: color, "stroke-width": 4, "stroke-linecap": "round"
+        });
+        // castellated pad
+        el(s, "rect", { x: padX - 7, y: y - 7, width: 14, height: 14, rx: 3, class: "pad" });
+        // silkscreen name on the board
+        el(s, "text", {
+          x: isLeft ? padX + 13 : padX - 13, y: y + 4, "font-size": 12,
+          "text-anchor": isLeft ? "start" : "end", class: "t-pcb", "font-weight": 600
+        }, p[0]);
+        // label pill
+        const px = isLeft ? 50 : 572, pw = 278;
+        el(s, "rect", { x: px, y: y - 11, width: pw, height: 22, rx: 11, class: "panel", stroke: color, "stroke-width": 1.5 });
+        el(s, "circle", { cx: px + 14, cy: y, r: 5, fill: color });
+        el(s, "text", { x: px + 26, y: y + 4.5, "font-size": 13 }, p[2]);
+        el(s, "text", {
+          x: px + pw - 12, y: y + 4, "font-size": 11, "text-anchor": "end", class: "t-mono t-muted"
+        }, p[0] + (p[1] ? " · " + p[1] : ""));
+      });
+    }
+    side(left, true);
+    side(right, false);
+  })();
+
+  // ---------------- Key matrix (top and bottom view) ----------------
+  // Positions measured from the Macropad top case, in mm. +y is towards the back.
+  const keysMM = [
+    [-20, 6.03], [0, 6.03], [20, 6.03],
+    [-20, -13.95], [0, -13.95], [20, -13.95],
+    [-20, -33.96], [0, -33.96], [20, -33.96],
+  ];
+  const rowPins = ["D10", "D7", "D6"];
+  const colPins = ["D0", "D8", "D9"];
+
+  function matrix(id, mirrored) {
+    const s = document.getElementById(id);
+    const S = 4, X0 = 104, Y0 = 26;
+    const X = (x) => X0 + ((mirrored ? -x : x) + 34.7) * S;
+    const Y = (y) => Y0 + (48.7 - y) * S;
+
+    // case outline
+    el(s, "rect", { x: X0, y: Y0, width: 69.4 * S, height: 97.4 * S, rx: 18, class: "outline" });
+    el(s, "text", { x: X0 + 34.7 * S, y: 16, "text-anchor": "middle", "font-size": 12, class: "t-muted" }, "bak · USB-C");
+    el(s, "text", { x: X0 + 34.7 * S, y: Y0 + 97.4 * S + 18, "text-anchor": "middle", "font-size": 12, class: "t-muted" }, "fram");
+
+    // XIAO under the lid (in the housing), dashed
+    const xw = 17.8 * S, xl = 21 * S;
+    el(s, "rect", { x: X(0) - xw / 2, y: Y(47.2), width: xw, height: xl, rx: 3, class: "dashed" });
+    el(s, "text", { x: X(0), y: Y(47.2) + 14, "text-anchor": "middle", "font-size": 10, class: "t-muted" }, "XIAO (i huset)");
+
+    // OLED window and knob
+    const ow = 22.09 * S, oh = 11.53 * S;
+    el(s, "rect", { x: X(-13.75) - ow / 2, y: Y(30.28) - oh / 2, width: ow, height: oh, rx: 3, class: "chip" });
+    el(s, "text", { x: X(-13.75), y: Y(30.28) + 4, "text-anchor": "middle", "font-size": 11, class: "t-onchip" }, "OLED");
+    el(s, "circle", { cx: X(15.75), cy: Y(29.79), r: 11 * S * 0.9, class: "outline" });
+    el(s, "circle", { cx: X(15.75), cy: Y(29.79), r: 3.75 * S, class: "outline" });
+    el(s, "text", { x: X(15.75), y: Y(29.79) + 4 + 11 * S * 0.9 + 12, "text-anchor": "middle", "font-size": 11, class: "t-muted" }, "ratt");
+
+    const half = 9 * S; // keycap half width (18 mm caps)
+    // column wires (vertical, left of each key as seen in this view)
+    [-20, 0, 20].forEach((cx, c) => {
+      const x = X(cx) - half - 6;
+      el(s, "line", { x1: x, y1: Y(6.03) - half + 4, x2: x, y2: Y(-33.96) + half + 26, stroke: W.col, "stroke-width": 3.5, "stroke-linecap": "round" });
+      el(s, "text", { x: x, y: Y(-33.96) + half + 42, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, "Kol " + (c + 1));
+      el(s, "text", { x: x, y: Y(-33.96) + half + 56, "text-anchor": "middle", "font-size": 11, class: "t-mono t-muted" }, colPins[c]);
+    });
+    // row wires (horizontal, below each key)
+    [6.03, -13.95, -33.96].forEach((ry, r) => {
+      const y = Y(ry) + half + 7;
+      el(s, "line", { x1: X0 - 4, y1: y, x2: X0 + 69.4 * S - 8, y2: y, stroke: W.row, "stroke-width": 3.5, "stroke-linecap": "round" });
+      el(s, "text", { x: X0 - 10, y: y - 2, "text-anchor": "end", "font-size": 12, "font-weight": 700 }, "Rad " + (r + 1));
+      el(s, "text", { x: X0 - 10, y: y + 12, "text-anchor": "end", "font-size": 11, class: "t-mono t-muted" }, rowPins[r]);
+    });
+
+    keysMM.forEach((k, i) => {
+      const cx = X(k[0]), cy = Y(k[1]);
+      el(s, "rect", { x: cx - half + 4, y: cy - half + 4, width: 2 * half - 8, height: 2 * half - 8, rx: 5, class: "key" });
+      el(s, "text", { x: cx, y: cy + 7, "text-anchor": "middle", "font-size": 20, "font-weight": 800, "font-family": "var(--display)" }, String(i + 1));
+      // stub from column wire to the switch
+      const colX = cx - half - 6;
+      el(s, "line", { x1: colX, y1: cy - 10, x2: cx - half + 4, y2: cy - 10, stroke: W.col, "stroke-width": 2.5 });
+      el(s, "circle", { cx: colX, cy: cy - 10, r: 3, fill: W.col });
+      // diode from the switch down to the row wire (triangle + bar, bar on the row side)
+      const dx = cx + half - 14, top = cy + half - 4, rowY = cy + half + 7;
+      el(s, "line", { x1: dx, y1: top, x2: dx, y2: rowY, stroke: "var(--ink)", "stroke-width": 1.5 });
+      el(s, "path", { d: `M ${dx - 5} ${top + 1} L ${dx + 5} ${top + 1} L ${dx} ${top + 7} Z`, fill: "var(--ink)" });
+      el(s, "line", { x1: dx - 5, y1: top + 8, x2: dx + 5, y2: top + 8, stroke: "var(--ink)", "stroke-width": 2 });
+      el(s, "circle", { cx: dx, cy: rowY, r: 3, fill: W.row });
+    });
+  }
+  matrix("m-top", false);
+  matrix("m-bottom", true);
+
+  // key table
+  const tb = document.getElementById("keytable");
+  for (let i = 0; i < 9; i++) {
+    const r = Math.floor(i / 3), c = i % 3;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="pin">${i + 1}</td><td><i class="dot" style="background:var(--w-col)"></i>Kol ${c + 1} · <span class="mono">${colPins[c]}</span></td><td><i class="dot" style="background:var(--w-row)"></i>Rad ${r + 1} · <span class="mono">${rowPins[r]}</span></td>`;
+    tb.appendChild(tr);
+  }
+
+  // ---------------- Diode ----------------
+  (function diode() {
+    const s = document.getElementById("diode");
+    el(s, "line", { x1: 20, y1: 60, x2: 140, y2: 60, stroke: W.col, "stroke-width": 4, "stroke-linecap": "round" });
+    el(s, "text", { x: 20, y: 40, "font-size": 12 }, "från switchen");
+    el(s, "rect", { x: 140, y: 44, width: 110, height: 32, rx: 10, class: "chip" });
+    el(s, "rect", { x: 222, y: 44, width: 12, height: 32, fill: "var(--metal)" });
+    el(s, "text", { x: 180, y: 64, "text-anchor": "middle", "font-size": 11, class: "t-onchip" }, "1N4148");
+    el(s, "line", { x1: 250, y1: 60, x2: 380, y2: 60, stroke: W.row, "stroke-width": 4, "stroke-linecap": "round" });
+    el(s, "text", { x: 380, y: 40, "text-anchor": "end", "font-size": 12 }, "till raden");
+    el(s, "text", { x: 228, y: 104, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, "ring = katod, mot raden");
+    el(s, "line", { x1: 228, y1: 80, x2: 228, y2: 90, stroke: "var(--ink)", "stroke-width": 1.5 });
+  })();
+
+  // ---------------- EC11 ----------------
+  (function ec11() {
+    const s = document.getElementById("ec11");
+    const cx = 200, cy = 140;
+    el(s, "rect", { x: cx - 60, y: cy - 60, width: 120, height: 120, rx: 6, class: "metal" });
+    el(s, "circle", { cx, cy, r: 34, class: "chip" });
+    el(s, "circle", { cx, cy, r: 15, fill: "var(--metal)" });
+    el(s, "rect", { x: cx - 15, y: cy - 15, width: 30, height: 9, fill: "var(--chip)" }); // D-flat
+    // 2 pins on top: switch
+    [[-25, "SW", "D3", W.enc], [25, "SW", "GND", W.gnd]].forEach(([dx, n, to, color]) => {
+      const x = cx + dx;
+      el(s, "rect", { x: x - 4, y: cy - 82, width: 8, height: 22, class: "pad" });
+      el(s, "line", { x1: x, y1: cy - 82, x2: x, y2: cy - 104, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
+      el(s, "text", { x: dx < 0 ? x + 6 : x - 6, y: cy - 110, "text-anchor": dx < 0 ? "end" : "start", "font-size": 12, "font-weight": 700 }, n + " → " + to);
+    });
+    // 3 pins at the bottom: A C B
+    [[-30, "A", "D1", W.enc], [0, "C", "GND", W.gnd], [30, "B", "D2", W.enc]].forEach(([dx, n, to, color]) => {
+      const x = cx + dx;
+      el(s, "rect", { x: x - 4, y: cy + 60, width: 8, height: 22, class: "pad" });
+      el(s, "line", { x1: x, y1: cy + 82, x2: x, y2: cy + 104, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
+      el(s, "text", { x: x, y: cy + 122, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, n);
+      el(s, "text", { x: x, y: cy + 137, "text-anchor": "middle", "font-size": 11, class: "t-mono t-muted" }, to);
+    });
+  })();
+
+  // ---------------- OLED ----------------
+  (function oled() {
+    const s = document.getElementById("oled");
+    const x = 90, y = 70, w = 220, h = 200;
+    el(s, "rect", { x, y, width: w, height: h, rx: 8, class: "pcb" });
+    el(s, "rect", { x: x + 18, y: y + 62, width: w - 36, height: 100, rx: 3, class: "chip" });
+    el(s, "text", { x: x + w / 2, y: y + 118, "text-anchor": "middle", "font-size": 12, class: "t-onchip" }, "128 × 64");
+    [["GND", "GND", W.gnd], ["VCC", "3V3", W.pwr], ["SCL", "D5", W.i2c], ["SDA", "D4", W.i2c]].forEach(([n, to, color], i) => {
+      const px = x + 50 + i * 40;
+      el(s, "circle", { cx: px, cy: y + 22, r: 6, class: "pad" });
+      el(s, "text", { x: px, y: y + 46, "text-anchor": "middle", "font-size": 11, class: "t-pcb", "font-weight": 600 }, n);
+      el(s, "line", { x1: px, y1: y + 16, x2: px, y2: y - 26, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
+      el(s, "text", { x: px, y: y - 34, "text-anchor": "middle", "font-size": 12, "font-weight": 700, class: "t-mono" }, to);
+    });
+    // mounting holes
+    [[x + 10, y + 10], [x + w - 10, y + 10], [x + 10, y + h - 10], [x + w - 10, y + h - 10]].forEach(([hx, hy]) => {
+      el(s, "circle", { cx: hx, cy: hy, r: 5, fill: "var(--paper)" });
+    });
+  })();
+})();
+</script>
