@@ -243,6 +243,78 @@ användning och tänds igen när du trycker eller vrider.
 | Vrid höger / vänster | Volym upp / ner | Volym upp / ner | Gör om / ångra |
 | Klick på ratten | Ljud av | Play/paus | Enter |
 
+### Exakt vad varje knapp skickar
+
+Panelen är ett Bluetooth-tangentbord. Den kör inga program själv. Varje knapp
+skickar tangenttryck eller mediaknappar, och Windows gör sedan samma sak som
+om du tryckt på motsvarande tangenter på ett vanligt tangentbord.
+
+- **Vanliga tangenter och kombinationer** hålls nere så länge du håller in
+  knappen och släpps när du släpper den.
+- **Ratten** skickar ett kort tryck per klick i vridningen.
+- **Sekvenserna på tangent 1–3 i lager 1** körs från början till slut när du
+  trycker, och tar 1–2 sekunder.
+
+Tiderna nedan (500 ms osv.) kan ändras i `config.h` (`RUN_DIALOG_MS`,
+`SEARCH_OPEN_MS`, `SEARCH_RESULT_MS`, `TYPE_MS`).
+
+#### Lager 1 "Apps"
+
+| Knapp | Display | Skickas till datorn | Resultat i Windows |
+|---|---|---|---|
+| Tangent 1 | Bambu | `Win` (tryck och släpp) → vänta 700 ms → skriver `bambu studio` → vänta 900 ms → `Enter` | Start-menyn öppnas, söker fram Bambu Studio och startar det (eller växlar till det om det redan är öppet) |
+| Tangent 2 | YouTube | `Win`+`R` → vänta 500 ms → skriver `https://www.youtube.com` → `Enter` | Kör-rutan öppnas och YouTube öppnas i din standardwebbläsare |
+| Tangent 3 | Gmail | `Win`+`R` → vänta 500 ms → skriver `https://mail.google.com` → `Enter` | Kör-rutan öppnas och Gmail öppnas i din standardwebbläsare |
+| Tangent 4 | Kopiera | `Ctrl`+`C` | Kopiera |
+| Tangent 5 | Klistra | `Ctrl`+`V` | Klistra in |
+| Tangent 6 | Mute | `F13` | Ingenting, tills du bundit F13 till *Toggle Mute* i Discord. Då slås mikrofonen av/på |
+| Tangent 7 | Deafen | `F14` | Ingenting, tills du bundit F14 till *Toggle Deafen* i Discord. Då slås allt ljud i Discord av/på |
+| Tangent 8 | Ångra | `Ctrl`+`Z` | Ångra |
+| Tangent 9 | PrtSc | `Print Screen` | Windows 11: skärmklippverktyget öppnas (eller hela skärmen kopieras, beroende på inställning) |
+| Vrid höger | Volym | Mediaknapp *Volume Up* | Systemvolymen höjs ett steg |
+| Vrid vänster | Volym | Mediaknapp *Volume Down* | Systemvolymen sänks ett steg |
+| Klick | Ljud av | Mediaknapp *Mute* | Systemljudet av/på |
+
+#### Lager 2 "Media"
+
+| Knapp | Display | Skickas till datorn | Resultat i Windows |
+|---|---|---|---|
+| Tangent 1 | Förra | Mediaknapp *Previous Track* | Föregående låt (Spotify, YouTube i webbläsaren m.fl.) |
+| Tangent 2 | Play | Mediaknapp *Play/Pause* | Spela/pausa |
+| Tangent 3 | Nästa | Mediaknapp *Next Track* | Nästa låt |
+| Tangent 4 | Mik | `Ctrl`+`Shift`+`M` | Mikrofon av/på i Microsoft Teams (när Teams-fönstret är aktivt) |
+| Tangent 5 | Kamera | `Ctrl`+`Shift`+`O` | Kamera av/på i Microsoft Teams (när Teams-fönstret är aktivt) |
+| Tangent 6 | Stopp | Mediaknapp *Stop* | Stoppar uppspelningen (inte alla spelare reagerar) |
+| Tangent 7 | Kalk | Mediaknapp *Calculator* | Öppnar Miniräknaren |
+| Tangent 8 | Webb | Mediaknapp *Browser Home* | Öppnar webbläsarens startsida |
+| Tangent 9 | Mail | Mediaknapp *Mail* | Öppnar standardprogrammet för e-post |
+| Vrid höger / vänster | Volym | Mediaknapp *Volume Up* / *Volume Down* | Systemvolymen upp/ner |
+| Klick | Play | Mediaknapp *Play/Pause* | Spela/pausa |
+
+#### Lager 3 "Redigera"
+
+| Knapp | Display | Skickas till datorn | Resultat i Windows |
+|---|---|---|---|
+| Tangent 1 | Kopiera | `Ctrl`+`C` | Kopiera |
+| Tangent 2 | Klistra | `Ctrl`+`V` | Klistra in |
+| Tangent 3 | Klipp | `Ctrl`+`X` | Klipp ut |
+| Tangent 4 | Spara | `Ctrl`+`S` | Spara |
+| Tangent 5 | Sök | `Ctrl`+`F` | Sök i dokumentet/sidan |
+| Tangent 6 | Allt | `Ctrl`+`A` | Markera allt |
+| Tangent 7 | Ny flik | `Ctrl`+`T` | Ny flik i webbläsaren |
+| Tangent 8 | Stäng | `Ctrl`+`W` | Stäng flik/dokument |
+| Tangent 9 | Skrivb. | `Win`+`D` | Visa skrivbordet (tryck igen för att få tillbaka fönstren) |
+| Vrid höger | Gör om | `Ctrl`+`Y` | Gör om, ett steg per klick |
+| Vrid vänster | Ångra | `Ctrl`+`Z` | Ångra, ett steg per klick |
+| Klick | Enter | `Enter` | Enter |
+
+#### Gäller alla lager
+
+| Knapp | Skickas till datorn | Vad som händer |
+|---|---|---|
+| Håll in ratten 0,6 s | Ingenting | Panelen byter till nästa lager. Bara displayen ändras |
+| Tangent 1 + ratten intryckta när strömmen kopplas in | Ingenting | Panelen glömmer alla parkopplade datorer |
+
 ### Ställ in datorn (en gång)
 
 **Bambu Studio, YouTube och Gmail** behöver ingen inställning.
