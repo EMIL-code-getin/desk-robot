@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline-bibliotek</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1d1d1b; --muted: #5d5a53;
+    --line: #dcd8cf; --accent: #b3261e; --ok: #2e7d32; --link: #1a4f8b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161513; --card: #211f1c; --ink: #ece9e2; --muted: #a8a397;
+            --line: #3a3732; --accent: #ff8a80; --ok: #81c784; --link: #90caf9; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.6rem; margin: 8px 0 4px; }
+  h2 { font-size: 1.25rem; margin: 0 0 8px; }
+  h3 { font-size: 1.05rem; margin: 16px 0 4px; }
+  p, ul, ol { margin: 6px 0; }
+  a { color: var(--link); }
+  .lead { color: var(--muted); margin-bottom: 16px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+  nav a { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+          background: var(--card); text-decoration: none; color: var(--ink); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+            padding: 16px; margin-bottom: 16px; }
+  .alert { border-left: 6px solid var(--accent); }
+  .big { font-size: 1.9rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .numbers > div { border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .status { font-weight: 600; }
+  .status.up { color: var(--ok); } .status.down { color: var(--accent); }
+  .books { list-style: none; padding: 0; display: grid; gap: 8px;
+           grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .books li { border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .books .meta { color: var(--muted); font-size: .9rem; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: left; vertical-align: top; }
+  @media (max-width: 600px) {
+    table, tbody, tr, td { display: block; width: 100%; }
+    tr:first-child { display: none; }
+    tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+    td { border: 0; padding: 2px 0; }
+    td:first-child { font-weight: 600; }
+  }
+  small, .src { color: var(--muted); font-size: .85rem; }
+  @media print { nav, #bibliotek { display: none; } section { break-inside: avoid; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Offline-bibliotek</h1>
+  <p class="lead">Wikipedia, guider och nödkort som fungerar utan internet. Korten på den här sidan
+    öppnas även om inget annat startar, och går bra att skriva ut.</p>
+
+  <nav>
+    <a href="#nod">Nödnummer</a>
+    <a href="#signaler">Varningssignaler</a>
+    <a href="#hlr">HLR</a>
+    <a href="#blodning">Blödning</a>
+    <a href="#vatten">Vatten</a>
+    <a href="#varme">Värme och el</a>
+    <a href="#hemma">Hemberedskap</a>
+    <a href="#bibliotek">Biblioteket</a>
+  </nav>
+
+  <section id="nod" class="alert">
+    <h2>Nödnummer</h2>
+    <div class="numbers">
+      <div><div class="big">112</div>Akut fara för liv, hälsa, egendom eller miljö: ambulans, polis, räddningstjänst.
+        Fungerar via alla mobilnät, även när ditt eget nät saknar täckning.</div>
+      <div><div class="big">1177</div>Sjukvårdsrådgivning, dygnet runt.</div>
+      <div><div class="big">114 14</div>Polisen, när det inte är akut.</div>
+      <div><div class="big">113 13</div>Information om allvarliga olyckor och kriser.</div>
+      <div><div class="big" style="font-size:1.4rem">010-456 67 00</div>Giftinformationscentralen, frågor som inte är akuta.
+        Vid akut förgiftning: ring 112.</div>
+    </div>
+    <p>Säg <b>vad</b> som hänt, <b>var</b> du är (adress, eller koordinater), och svara på frågorna. Lägg inte på förrän du blir tillsagd.</p>
+  </section>
+
+  <section id="signaler">
+    <h2>Varningssignaler utomhus</h2>
+    <table>
+      <tr><th>Signal</th><th>Betyder</th><th>Gör så här</th></tr>
+      <tr><td>7 s ljud, 14 s tyst, upprepas i minst 2 min</td><td>Viktigt meddelande till allmänheten (VMA)</td>
+        <td>Gå inomhus. Stäng dörrar, fönster och ventilation. Lyssna på Sveriges Radio P4.</td></tr>
+      <tr><td>30 s sammanhängande ljud</td><td>Faran över</td><td>Följ fortsatta besked från myndigheterna.</td></tr>
+      <tr><td>30 s ljud, 15 s uppehåll, i 5 min</td><td>Beredskapslarm</td><td>Lyssna på P4. Följ myndigheternas uppmaningar.</td></tr>
+      <tr><td>Korta ljudstötar i 1 min</td><td>Flyglarm</td><td>Sök skydd direkt, helst i skyddsrum eller källare.</td></tr>
+    </table>
+    <p><small>Signalen provas kl. 15.00 den första helgfria måndagen i mars, juni, september och december.
+      P4 är beredskapskanal: ha en radio med batteri, vev eller solcell.</small></p>
+  </section>
+
+  <section id="hlr">
+    <h2>HLR, vuxen</h2>
+    <ol>
+      <li>Ruska och ropa. Svarar personen inte och andas inte normalt: <b>ring 112</b>, sätt telefonen på högtalare.</li>
+      <li>Be någon hämta en <b>hjärtstartare</b> (AED). Slå på den och gör som den säger.</li>
+      <li><b>30 bröstkompressioner</b> mitt på bröstet: 5 till 6 cm djupt, 100 till 120 i minuten. Släpp upp helt mellan varje.</li>
+      <li><b>2 inblåsningar</b> om du kan och vill. Annars: bara kompressioner, utan uppehåll.</li>
+      <li>Fortsätt tills ambulansen tar över eller personen börjar andas normalt.</li>
+    </ol>
+    <p>Andas personen normalt men är medvetslös: lägg i <b>stabilt sidoläge</b> och håll koll på andningen.</p>
+  </section>
+
+  <section id="blodning">
+    <h2>Kraftig blödning</h2>
+    <ol>
+      <li><b>Ring 112.</b></li>
+      <li>Tryck hårt direkt på såret med handen, ett förband eller ett tygstycke. Släpp inte.</li>
+      <li>Lägg ett tryckförband ovanpå. Blöder det igenom: lägg mer ovanpå, ta inte bort det första.</li>
+      <li>Livshotande blödning från arm eller ben som inte stoppas: <b>avsnörande förband</b> (tourniquet)
+        en handsbredd ovanför såret, dra åt tills blödningen slutar. Skriv upp klockslaget.</li>
+      <li>Håll personen varm och liggande.</li>
+    </ol>
+  </section>
+
+  <section id="vatten">
+    <h2>Vatten</h2>
+    <ul>
+      <li>Räkna med minst <b>3 liter per person och dygn</b> till dryck och matlagning.</li>
+      <li>Osäkert vatten: <b>koka upp</b> och låt det koka ordentligt i minst en minut, låt svalna. Det dödar bakterier, virus och parasiter.</li>
+      <li>Grumligt vatten: låt sedimentera, sila genom tyg, koka sedan.</li>
+      <li>Reningstabletter: följ förpackningen noga. De tar inte bort kemikalier eller tungmetaller.</li>
+      <li>Varmvattenberedaren (ofta 100 till 300 liter) och toalettcisternen (inte stolen) är reserver.</li>
+    </ul>
+  </section>
+
+  <section id="varme">
+    <h2>Värme och strömavbrott</h2>
+    <ul>
+      <li>Samla alla i ett rum. Stäng dörrar, täck fönster, lägg mattor mot golvdrag. Klä er i lager, mössa inomhus.</li>
+      <li><b>Använd aldrig grill, gasolkök eller utomhusvärmare inomhus</b>: kolmonoxid dödar utan förvarning.</li>
+      <li>Levande ljus och fotogenlampor: aldrig obevakade. Ha en brandvarnare med batteri och en brandsläckare.</li>
+      <li>Kyl och frys: öppna så lite som möjligt. En full frys håller kylan ungefär ett dygn.</li>
+      <li>Ladda powerbanks medan strömmen finns. Bilen kan ladda telefoner, men kör den aldrig i garage.</li>
+    </ul>
+  </section>
+
+  <section id="hemma">
+    <h2>Hemberedskap: klara en vecka själv</h2>
+    <ul>
+      <li><b>Vatten</b>: dunkar eller flaskor, och kärl att hämta vatten i.</li>
+      <li><b>Mat</b> som håller länge och kan ätas utan kyl eller tillagning.</li>
+      <li><b>Värme</b>: filtar, sovsäckar, varma kläder.</li>
+      <li><b>Information</b>: radio med batteri, vev eller solcell. Ficklampa, batterier, powerbank.</li>
+      <li><b>Kontanter</b> i mindre valörer, och dina mediciner för minst en vecka.</li>
+      <li>Kom överens med familjen om var ni möts och vem som hämtar vem.</li>
+    </ul>
+    <p class="src">Källor att kontrollera mot: broschyren <i>Om krisen eller kriget kommer</i> (Myndigheten för civilt försvar, tidigare MSB),
+      krisinformation.se, 1177.se, HLR-rådet, Livsmedelsverket. Lägg gärna broschyren som PDF i mappen <code>egna-filer</code>.</p>
+  </section>
+
+  <section id="bibliotek">
+    <h2>Biblioteket <span id="status" class="status"></span></h2>
+    <p id="hint"></p>
+    <ul id="books" class="books"></ul>
+    <p><a href="../egna-filer/">Egna filer</a> (PDF:er, kartor och dokument du lagt på stickan).</p>
+  </section>
+
+  <p><small>Ett uppslagsverk, inte en ersättning för räddningstjänst, vård eller myndigheternas besked.
+    Innehållet kommer från fria källor och kan vara fel eller inaktuellt.</small></p>
+</main>
+
+<script src="bibliotek.js"></script>
+<script>
+  const PORT = 8090;
+  const base = `http://${location.protocol === "file:" ? "localhost" : location.hostname}:${PORT}`;
+  const books = window.BIBLIOTEK || [];
+  const list = document.getElementById("books");
+  const gb = n => n >= 1e9 ? (n / 1e9).toFixed(n < 1e10 ? 1 : 0) + " GB" : Math.max(1, Math.round(n / 1e6)) + " MB";
+
+  for (const b of books) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = `${base}/content/${encodeURIComponent(b.book)}/`;
+    a.textContent = b.title;
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = [b.desc, b.lang && b.lang.toUpperCase(), gb(b.size)].filter(Boolean).join(" · ");
+    li.append(a, meta);
+    list.append(li);
+  }
+
+  const status = document.getElementById("status");
+  const hint = document.getElementById("hint");
+  if (!books.length) {
+    hint.textContent = "Inga arkiv på stickan än. Kör build_usb.py för att hämta Wikipedia och guiderna.";
+  }
+  // From file:// the page cannot read the server's reply, but an opaque
+  // no-cors request still tells us whether anything is listening.
+  fetch(base + "/", { mode: "no-cors" }).then(() => {
+    status.textContent = "· igång";
+    status.className = "status up";
+    if (books.length) hint.innerHTML = `Klicka på ett arkiv, eller <a href="${base}/">sök i allt</a>.`;
+  }).catch(() => {
+    status.textContent = "· inte startat";
+    status.className = "status down";
+    if (books.length) hint.textContent = "Starta START-WINDOWS.bat, START-MAC.command eller START-LINUX.sh på stickan och ladda om sidan.";
+  });
+</script>
+</body>
+</html>

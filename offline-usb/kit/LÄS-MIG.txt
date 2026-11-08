@@ -1,0 +1,29 @@
+OFFLINE-BIBLIOTEK
+=================
+
+Starta:
+  Windows:  dubbelklicka START-WINDOWS.bat
+            (klicka Tillåt om brandväggen frågar, då kan mobiler ansluta)
+  Mac:      dubbelklicka START-MAC.command
+            (blockeras den: högerklicka, välj Öppna)
+  Linux:    bash START-LINUX.sh
+
+Webbläsaren öppnar portal/index.html med nödkort och länkar till biblioteket.
+Nödkorten fungerar även om inget annat startar: öppna portal/index.html direkt.
+
+Mobil: anslut mobilen till samma wifi som datorn, eller anslut datorn till
+mobilens hotspot (fungerar utan mobiltäckning). Öppna adressen som visas i
+startfönstret, t.ex. http://192.168.1.23:8090/
+
+Utan dator: installera appen Kiwix (Android/iPhone) i förväg och öppna
+.zim-filerna i mappen library/.
+
+Mappar:
+  library/     Wikipedia och guider (.zim)
+  kiwix/       läsaren kiwix-serve för varje system
+  portal/      startsidan med nödkort
+  egna-filer/  lägg egna PDF:er här, t.ex. "Om krisen eller kriget kommer"
+
+Uppdatera: kör build_usb.py igen med samma --target. Nya utgåvor ersätter gamla.
+
+Ett uppslagsverk, inte en ersättning för 112, vården eller myndigheternas besked.
