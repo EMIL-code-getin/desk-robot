@@ -72,6 +72,7 @@
 #define KEY_DOT        0x37
 #define KEY_SLASH      0x38
 #define KEY_CAPSLOCK   0x39
+#define KEY_NONUS_BACKSLASH 0x64  // ISO key left of Z: < > | on Swedish layout
 
 // ---- Function keys --------------------------------------------------------
 // F13-F24 exist in the HID spec but not on normal keyboards, so they never

@@ -147,19 +147,81 @@ uint16_t heldMedia() {
   return 0;
 }
 
+// Which key (and modifiers) produces a character, for the keyboard layout set
+// in Windows. Letters, digits and space are the same on both layouts.
+struct CharKey {
+  char c;
+  uint8_t mods;
+  uint8_t key;
+};
+
+#if KEYBOARD_LAYOUT_SE
+const CharKey SPECIAL_CHARS[] = {
+  {'.', 0, KEY_DOT},        {':', MOD_SHIFT, KEY_DOT},
+  {',', 0, KEY_COMMA},      {';', MOD_SHIFT, KEY_COMMA},
+  {'-', 0, KEY_SLASH},      {'_', MOD_SHIFT, KEY_SLASH},
+  {'+', 0, KEY_MINUS},      {'?', MOD_SHIFT, KEY_MINUS},
+  {'\\', MOD_ALTGR, KEY_MINUS},
+  {'!', MOD_SHIFT, KEY_1},  {'"', MOD_SHIFT, KEY_2},  {'@', MOD_ALTGR, KEY_2},
+  {'#', MOD_SHIFT, KEY_3},  {'$', MOD_ALTGR, KEY_4},  {'%', MOD_SHIFT, KEY_5},
+  {'&', MOD_SHIFT, KEY_6},  {'/', MOD_SHIFT, KEY_7},  {'{', MOD_ALTGR, KEY_7},
+  {'(', MOD_SHIFT, KEY_8},  {'[', MOD_ALTGR, KEY_8},  {')', MOD_SHIFT, KEY_9},
+  {']', MOD_ALTGR, KEY_9},  {'=', MOD_SHIFT, KEY_0},  {'}', MOD_ALTGR, KEY_0},
+  {'\'', 0, KEY_BACKSLASH}, {'*', MOD_SHIFT, KEY_BACKSLASH},
+  {'<', 0, KEY_NONUS_BACKSLASH}, {'>', MOD_SHIFT, KEY_NONUS_BACKSLASH},
+  {'|', MOD_ALTGR, KEY_NONUS_BACKSLASH},
+};
+#else
+const CharKey SPECIAL_CHARS[] = {
+  {'.', 0, KEY_DOT},        {'>', MOD_SHIFT, KEY_DOT},
+  {',', 0, KEY_COMMA},      {'<', MOD_SHIFT, KEY_COMMA},
+  {'-', 0, KEY_MINUS},      {'_', MOD_SHIFT, KEY_MINUS},
+  {'=', 0, KEY_EQUAL},      {'+', MOD_SHIFT, KEY_EQUAL},
+  {'/', 0, KEY_SLASH},      {'?', MOD_SHIFT, KEY_SLASH},
+  {';', 0, KEY_SEMICOLON},  {':', MOD_SHIFT, KEY_SEMICOLON},
+  {'\'', 0, KEY_APOSTROPHE}, {'"', MOD_SHIFT, KEY_APOSTROPHE},
+  {'[', 0, KEY_LEFTBRACE},  {'{', MOD_SHIFT, KEY_LEFTBRACE},
+  {']', 0, KEY_RIGHTBRACE}, {'}', MOD_SHIFT, KEY_RIGHTBRACE},
+  {'\\', 0, KEY_BACKSLASH}, {'|', MOD_SHIFT, KEY_BACKSLASH},
+  {'!', MOD_SHIFT, KEY_1},  {'@', MOD_SHIFT, KEY_2},  {'#', MOD_SHIFT, KEY_3},
+  {'$', MOD_SHIFT, KEY_4},  {'%', MOD_SHIFT, KEY_5},  {'&', MOD_SHIFT, KEY_7},
+  {'*', MOD_SHIFT, KEY_8},  {'(', MOD_SHIFT, KEY_9},  {')', MOD_SHIFT, KEY_0},
+};
+#endif
+
 bool asciiToKey(char c, uint8_t& mods, uint8_t& key) {
   mods = 0;
-  if (c >= 'a' && c <= 'z') key = KEY_A + (c - 'a');
-  else if (c >= 'A' && c <= 'Z') { key = KEY_A + (c - 'A'); mods = MOD_SHIFT; }
-  else if (c >= '1' && c <= '9') key = KEY_1 + (c - '1');
-  else if (c == '0') key = KEY_0;
-  else if (c == ' ') key = KEY_SPACE;
-  else if (c == '\n') key = KEY_ENTER;
-  else if (c == '\t') key = KEY_TAB;
-  else if (c == '.') key = KEY_DOT;
-  else if (c == ',') key = KEY_COMMA;
-  else return false;
-  return true;
+  if (c >= 'a' && c <= 'z') { key = KEY_A + (c - 'a'); return true; }
+  if (c >= 'A' && c <= 'Z') { key = KEY_A + (c - 'A'); mods = MOD_SHIFT; return true; }
+  if (c >= '1' && c <= '9') { key = KEY_1 + (c - '1'); return true; }
+  if (c == '0') { key = KEY_0; return true; }
+  if (c == ' ') { key = KEY_SPACE; return true; }
+  if (c == '\n') { key = KEY_ENTER; return true; }
+  if (c == '\t') { key = KEY_TAB; return true; }
+  for (const CharKey& ck : SPECIAL_CHARS) {
+    if (ck.c == c) {
+      mods = ck.mods;
+      key = ck.key;
+      return true;
+    }
+  }
+  return false;
+}
+
+// Press and release one key combination (key may be 0 for modifiers only).
+void tapCombo(uint8_t mods, uint8_t key, uint32_t gapMs) {
+  Action k = {ACT_KEY, mods, key, nullptr, ""};
+  sendKeyboard(&k);
+  delay(gapMs);
+  sendKeyboard();
+  delay(gapMs);
+}
+
+void typeText(const char* text) {
+  for (const char* p = text; p != nullptr && *p; p++) {
+    uint8_t mods, code;
+    if (asciiToKey(*p, mods, code)) tapCombo(mods, code, TYPE_MS);
+  }
 }
 
 void nextLayer() {
@@ -183,18 +245,24 @@ void tap(const Action& a) {
       BleHid::sendMedia(heldMedia());
       break;
     case ACT_TEXT:
-      for (const char* p = a.text; p != nullptr && *p; p++) {
-        Action k = NONE;
-        uint8_t mods, code;
-        if (!asciiToKey(*p, mods, code)) continue;
-        k.type = ACT_KEY;
-        k.mods = mods;
-        k.code = code;
-        sendKeyboard(&k);
-        delay(TAP_MS);
-        sendKeyboard();
-        delay(TAP_MS);
-      }
+      typeText(a.text);
+      break;
+    case ACT_RUN:
+      // Win+R opens the Run box; a web address there opens the default
+      // browser, a program or file name starts it.
+      tapCombo(MOD_GUI, KEY_R, TYPE_MS);
+      delay(RUN_DIALOG_MS);
+      typeText(a.text);
+      tapCombo(0, KEY_ENTER, TYPE_MS);
+      break;
+    case ACT_SEARCH:
+      // The Windows key opens Start; typing searches, Enter starts the top
+      // result. If the program is already open, Windows switches to it.
+      tapCombo(MOD_GUI, 0, TYPE_MS);
+      delay(SEARCH_OPEN_MS);
+      typeText(a.text);
+      delay(SEARCH_RESULT_MS);
+      tapCombo(0, KEY_ENTER, TYPE_MS);
       break;
     case ACT_LAYER:
       nextLayer();

@@ -76,9 +76,21 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {2, 8, 9};
 // ============================================================================
 #define DEBOUNCE_MS        5    // ignore switch bounce shorter than this
 #define LAYER_HOLD_MS      600  // hold the knob this long to change layer
-#define TAP_MS             12   // how long a "tap" (encoder step, text) is held
+#define TAP_MS             12   // how long a "tap" (encoder step) is held
+#define TYPE_MS            20   // per key when typing text (RUN, SEARCH, TEXT)
+#define RUN_DIALOG_MS      500  // wait for the Win+R box to open
+#define SEARCH_OPEN_MS     700  // wait for the Start menu to open
+#define SEARCH_RESULT_MS   900  // wait for Windows search to find the program
 #define CLEAR_BONDS_HOLD   true // hold key 1 + knob while powering on to forget
                                 // all paired computers
+
+// ============================================================================
+// Computer keyboard layout
+// ============================================================================
+// RUN, SEARCH and TEXT type characters, and which key gives ":" or "/"
+// depends on the keyboard layout chosen in Windows. true = Swedish,
+// false = US English.
+#define KEYBOARD_LAYOUT_SE true
 
 // ============================================================================
 // Keymap
@@ -105,8 +117,12 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {2, 8, 9};
 //   KEY("F13", KEY_F13)                   a single key
 //   COMBO("Kopiera", MOD_CTRL, KEY_C)     key with modifiers (MOD_CTRL | MOD_SHIFT ...)
 //   MEDIA("Play", MEDIA_PLAY_PAUSE)       media key
-//   TEXT("Hej", "hej\n")                  types text (a-z, A-Z, 0-9, space, ".",
-//                                         ",", "\n"; Swedish and US layouts)
+//   RUN("Gmail", "https://mail.google.com")
+//                                         Windows: Win+R, types it, Enter. Opens
+//                                         web addresses, programs and folders
+//   SEARCH("Bambu", "bambu studio")       Windows: Start menu search, Enter.
+//                                         Starts (or switches to) a program
+//   TEXT("Hej", "hej\n")                  types text (no å, ä, ö)
 //   NEXT_LAYER("Lager")                   switch layer
 //   NONE                                  does nothing
 //
@@ -117,23 +133,22 @@ static const Layer LAYERS[] = {
   {
     // Layer 1: apps, copy/paste and Discord.
     //
-    // Win+1/2/3 open (or switch to) the 1st/2nd/3rd app pinned on the Windows
-    // taskbar, so pin Bambu Studio, Discord and Gmail there in that order.
-    //
     // Discord's own Ctrl+Shift+M / Ctrl+Shift+D only work while Discord has
-    // focus. F13/F14 work everywhere once bound in Discord: Settings ->
-    // Keybinds -> "Toggle Mute" = F13, "Toggle Deafen" = F14.
+    // focus, so keys 6 and 7 send Ctrl+Shift+Alt+M / D. Bind them once in
+    // Discord: User Settings -> Keybinds -> Add a Keybind -> "Toggle Mute",
+    // click the shortcut field and press key 6; again with "Toggle Deafen"
+    // and key 7. Discord keybinds work even when Discord is in the background.
     "Apps",
     {
-      COMBO("Bambu",   MOD_GUI,  KEY_1),  // 1: Bambu Studio (1st taskbar app)
-      COMBO("Discord", MOD_GUI,  KEY_2),  // 2: Discord      (2nd taskbar app)
-      COMBO("Gmail",   MOD_GUI,  KEY_3),  // 3: Gmail        (3rd taskbar app)
-      COMBO("Kopiera", MOD_CTRL, KEY_C),  // 4: copy
-      COMBO("Klistra", MOD_CTRL, KEY_V),  // 5: paste
-      KEY("Mute",      KEY_F13),          // 6: Discord Toggle Mute
-      KEY("Deafen",    KEY_F14),          // 7: Discord Toggle Deafen (full mute)
-      COMBO("Ångra",   MOD_CTRL, KEY_Z),  // 8: undo
-      COMBO("Skärm",   MOD_GUI | MOD_SHIFT, KEY_S),  // 9: Windows screenshot snip
+      SEARCH("Bambu",   "bambu studio"),             // 1: start Bambu Studio
+      RUN("YouTube",    "https://www.youtube.com"),  // 2: YouTube in the browser
+      RUN("Gmail",      "https://mail.google.com"),  // 3: Gmail in the browser
+      COMBO("Kopiera",  MOD_CTRL, KEY_C),            // 4: copy
+      COMBO("Klistra",  MOD_CTRL, KEY_V),            // 5: paste
+      COMBO("Mute",     MOD_CTRL | MOD_SHIFT | MOD_ALT, KEY_M),  // 6: Discord Toggle Mute
+      COMBO("Deafen",   MOD_CTRL | MOD_SHIFT | MOD_ALT, KEY_D),  // 7: Discord Toggle Deafen
+      COMBO("Ångra",    MOD_CTRL, KEY_Z),            // 8: undo
+      KEY("PrtSc",      KEY_PRINTSCREEN),            // 9: Print Screen
     },
     MEDIA("Volym",   MEDIA_VOL_UP),    // turn right
     MEDIA("Volym",   MEDIA_VOL_DOWN),  // turn left

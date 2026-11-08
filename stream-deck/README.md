@@ -10,11 +10,11 @@ inga drivrutiner eller program. Displayen visar vad varje knapp gör.
         bak (USB-C)
    [ OLED ]      ( ratt )
    +---------+---------+---------+
-   | Bambu   | Discord |  Gmail  |   1 2 3
+   | Bambu   | YouTube |  Gmail  |   1 2 3
    +---------+---------+---------+
    | Kopiera | Klistra |  Mute   |   4 5 6
    +---------+---------+---------+
-   | Deafen  |  Ångra  |  Skärm  |   7 8 9
+   | Deafen  |  Ångra  |  PrtSc  |   7 8 9
    +---------+---------+---------+
         fram          vrid = volym, klick = ljud av
 ```
@@ -231,53 +231,48 @@ användning och tänds igen när du trycker eller vrider.
 
 | | Lager 1 "Apps" | Lager 2 "Media" | Lager 3 "Redigera" |
 |---|---|---|---|
-| Tangent 1 | **Bambu Studio** (Win+1) | Föregående låt | Kopiera |
-| Tangent 2 | **Discord** (Win+2) | Play/paus | Klistra in |
-| Tangent 3 | **Gmail** (Win+3) | Nästa låt | Klipp ut |
+| Tangent 1 | **Bambu Studio** (startas via sök) | Föregående låt | Kopiera |
+| Tangent 2 | **YouTube** (i webbläsaren) | Play/paus | Klistra in |
+| Tangent 3 | **Gmail** (i webbläsaren) | Nästa låt | Klipp ut |
 | Tangent 4 | **Kopiera** (Ctrl+C) | Mikrofon av/på i Teams | Spara |
 | Tangent 5 | **Klistra in** (Ctrl+V) | Kamera av/på i Teams | Sök |
-| Tangent 6 | **Mute i Discord** (F13) | Stopp | Markera allt |
-| Tangent 7 | **Fullmute i Discord** (F14) | Miniräknare | Ny flik |
+| Tangent 6 | **Mute i Discord** (Ctrl+Shift+Alt+M) | Stopp | Markera allt |
+| Tangent 7 | **Fullmute i Discord** (Ctrl+Shift+Alt+D) | Miniräknare | Ny flik |
 | Tangent 8 | Ångra (Ctrl+Z) | Webbläsare | Stäng flik |
-| Tangent 9 | Skärmklipp (Win+Shift+S) | E-post | Visa skrivbordet |
+| Tangent 9 | **Print Screen** | E-post | Visa skrivbordet |
 | Vrid höger / vänster | Volym upp / ner | Volym upp / ner | Gör om / ångra |
 | Klick på ratten | Ljud av | Play/paus | Enter |
 
 ### Ställ in datorn (en gång)
 
-Ett tangentbord kan inte starta program själv, så lager 1 använder två
-inbyggda funktioner i Windows och Discord. Inga extra program behövs.
+**Bambu Studio, YouTube och Gmail** behöver ingen inställning.
+- **Tangent 1** trycker på Windows-tangenten, skriver *bambu studio* och trycker
+  Enter, precis som när du söker i Start-menyn. Är programmet redan öppet
+  växlar Windows till det.
+- **Tangent 2 och 3** trycker Win+R, skriver webbadressen och trycker Enter.
+  Sidan öppnas i din vanliga webbläsare.
 
-**Bambu Studio, Discord och Gmail (Win+1/2/3).** Win+siffra öppnar programmet
-som sitter på den platsen i aktivitetsfältet, räknat från vänster. Om det
-redan är öppet växlar Windows till det.
+Låt bli att trycka på andra tangenter de 1–2 sekunder det tar.
 
-1. Fäst Bambu Studio och Discord i aktivitetsfältet: sök upp programmet i
-   Start, högerklicka och välj **Fäst i Aktivitetsfältet**.
-2. Gör Gmail till en egen app:
-   - **Chrome:** öppna mail.google.com, klicka på ⋮ → **Spara och dela** →
-     **Installera sidan som app**.
-   - **Edge:** öppna mail.google.com, klicka på ⋯ → **Appar** →
-     **Installera den här webbplatsen som en app**.
-
-   Fäst sedan Gmail-ikonen i aktivitetsfältet.
-3. Dra ikonerna så att **Bambu Studio är först, Discord tvåa och Gmail trea**
-   längst till vänster. Alla fästa ikoner räknas, även Utforskaren och Edge,
-   så lossa dem eller lägg dem till höger om de tre.
-
-**Mute och fullmute i Discord (F13/F14).** Discords egna kortkommandon
-(Ctrl+Shift+M och Ctrl+Shift+D) fungerar bara när Discord-fönstret är aktivt.
-Därför används F13 och F14 som globala tangentbindningar. De fungerar även när
-du sitter i Bambu Studio eller ett spel.
+**Mute och fullmute i Discord** behöver en inställning i Discord. Discords egna
+kortkommandon (Ctrl+Shift+M och Ctrl+Shift+D) fungerar bara när
+Discord-fönstret är aktivt. Panelen skickar därför Ctrl+Shift+Alt+M och
+Ctrl+Shift+Alt+D, som du lägger in som tangentbindningar i Discord. Då
+fungerar de även när du sitter i Bambu Studio eller ett spel.
 
 1. Discord → **Användarinställningar** (kugghjulet) → **Tangentbindningar** →
    **Lägg till en tangentbindning**.
 2. Välj åtgärden för att slå av och på mikrofonen (**Toggle Mute** i engelska
    Discord). Klicka i tangentfältet och tryck på **tangent 6** på panelen.
-   Där ska det stå F13.
+   Där ska det stå Ctrl + Shift + Alt + M.
 3. Lägg till en bindning till med åtgärden för att slå av och på allt ljud
    (**Toggle Deafen**). Klicka i fältet och tryck på **tangent 7**. Där ska
-   det stå F14.
+   det stå Ctrl + Shift + Alt + D.
+
+**Print Screen** (tangent 9) gör det som Print Screen-tangenten är inställd
+på i Windows. I Windows 11 öppnas skärmklippverktyget som standard. Vill du i
+stället kopiera hela skärmen direkt: **Inställningar → Hjälpmedel →
+Tangentbord → Använd Print Screen-knappen för att öppna skärmbild**, stäng av.
 
 ### Ändra knapparna
 
@@ -285,10 +280,12 @@ Allt finns i fliken `config.h` (filen `firmware/stream_deck/config.h`), i listan
 är det som visas på displayen (högst 7 tecken; å, ä och ö fungerar):
 
 ```cpp
-KEY("F13", KEY_F13)                        // en tangent
+KEY("PrtSc", KEY_PRINTSCREEN)              // en tangent
 COMBO("Kopiera", MOD_CTRL, KEY_C)          // tangentkombination
 MEDIA("Play", MEDIA_PLAY_PAUSE)            // mediaknapp
-TEXT("Hej", "hej\n")                       // skriver text (a–z, A–Z, 0–9, mellanslag, . , och Enter)
+SEARCH("Bambu", "bambu studio")            // startar ett program via Windows-sökningen
+RUN("YouTube", "https://www.youtube.com")  // Win+R: öppnar en webbadress, ett program eller en mapp
+TEXT("Hej", "hej\n")                       // skriver text
 NEXT_LAYER("Lager")                        // byt lager
 NONE                                       // gör ingenting
 ```
@@ -296,9 +293,10 @@ NONE                                       // gör ingenting
 Du kan lägga till fler lager genom att kopiera ett block i `LAYERS`.
 Alla tangentkoder finns i `keycodes.h`. Ladda upp koden igen efter varje ändring.
 
-> Tangentkoder är fysiska positioner: datorns tangentbordslayout avgör vilket
-> tecken som kommer ut. Därför klarar `TEXT()` bara tecken som ligger på samma
-> plats i svensk och amerikansk layout (inga å, ä, ö eller specialtecken).
+> `RUN`, `SEARCH` och `TEXT` skriver tecken som om de vore tangenttryck, så de
+> måste veta vilken tangentbordslayout Windows använder. Standard är svensk
+> (`KEYBOARD_LAYOUT_SE true` i `config.h`). Bokstäver, siffror och vanliga
+> tecken som `: / . - _ ? = & @` fungerar, men inte å, ä och ö.
 > Displaytexterna har inte den begränsningen.
 
 ## Felsökning
@@ -315,6 +313,9 @@ Alla tangentkoder finns i `keycodes.h`. Ladda upp koden igen efter varje ändrin
 | Bluetooth tappar anslutningen eller syns knappt | Antennen sitter inte i, eller ligger tryckt mot trådarna. |
 | Panelen syns inte i Bluetooth-listan | Den är redan parad med en annan enhet. Rensa parkopplingar (tangent 1 + ratt vid start). |
 | Ansluten men inget händer i Windows | Ta bort enheten i Bluetooth-inställningarna och para om. Det behövs också efter att du ändrat `DEVICE_NAME`. |
-| Fel program öppnas på tangent 1–3 | Ordningen i aktivitetsfältet stämmer inte. Win+1 är ikonen längst till vänster (efter Start/Sök). |
-| Mute i Discord fungerar bara ibland | Bindningen saknas i Discord. Lägg till F13/F14 under Tangentbindningar (se ovan). |
+| Bambu Studio startar inte, eller fel program startar | Windows-sökningen hann inte hitta programmet. Öka `SEARCH_RESULT_MS` (och vid behov `SEARCH_OPEN_MS`) i `config.h`. Testa också att själv trycka på Windows-tangenten och skriva *bambu studio*: kommer Bambu Studio överst? |
+| Konstiga tecken i stället för YouTube-/Gmail-adressen | Fel tangentbordslayout. `KEYBOARD_LAYOUT_SE` ska vara `true` om Windows använder svenskt tangentbord. |
+| Kör-rutan öppnas men adressen skrivs inte klart | Öka `RUN_DIALOG_MS` eller `TYPE_MS` i `config.h`. |
+| Mute/fullmute i Discord gör ingenting | Bindningen saknas i Discord. Lägg till den under Tangentbindningar (se ovan). |
+| En viss tangent gör ingenting | Titta på displayen när du trycker. Blir rutan **inte** inverterad når trycket aldrig fram till XIAO:n: kolla lödningen och rad- och kolumntråden för den tangenten. Blir den inverterad är kopplingen rätt, och felet ligger i vad tangenten skickar. |
 | Tangenterna gör plötsligt något annat | Du har bytt lager genom att hålla in ratten. Läs lagrets namn uppe till vänster på displayen och håll in ratten tills det står "Apps". |

@@ -9,7 +9,9 @@ enum ActionType : uint8_t {
   ACT_NONE,
   ACT_KEY,    // keyboard key, optionally with modifiers; held while pressed
   ACT_MEDIA,  // consumer/media key (volume, play/pause...); held while pressed
-  ACT_TEXT,   // types a short string (ASCII letters, digits, space, Enter)
+  ACT_TEXT,   // types a string
+  ACT_RUN,    // Windows: Win+R, types a command or web address, Enter
+  ACT_SEARCH, // Windows: Win, types a program name, Enter (starts the program)
   ACT_LAYER,  // jump to the next layer
 };
 
@@ -17,7 +19,7 @@ struct Action {
   ActionType type;
   uint8_t mods;       // MOD_* bit mask for ACT_KEY
   uint16_t code;      // KEY_* for ACT_KEY, MEDIA_* for ACT_MEDIA
-  const char* text;   // for ACT_TEXT
+  const char* text;   // for ACT_TEXT, ACT_RUN, ACT_SEARCH
   const char* label;  // shown on the display
 };
 
@@ -26,6 +28,8 @@ struct Action {
 #define COMBO(lbl, m, k)    {ACT_KEY, (m), (k), nullptr, (lbl)}
 #define MEDIA(lbl, u)       {ACT_MEDIA, 0, (u), nullptr, (lbl)}
 #define TEXT(lbl, s)        {ACT_TEXT, 0, 0, (s), (lbl)}
+#define RUN(lbl, cmd)       {ACT_RUN, 0, 0, (cmd), (lbl)}
+#define SEARCH(lbl, name)   {ACT_SEARCH, 0, 0, (name), (lbl)}
 #define NEXT_LAYER(lbl)     {ACT_LAYER, 0, 0, nullptr, (lbl)}
 
 #define MATRIX_ROWS 3
