@@ -77,6 +77,21 @@ uint16_t scanMatrix() {
   return mask;
 }
 
+// Without diodes, three held keys in an "L" also pull the fourth corner of
+// their rectangle low. A reading where two rows share two or more pressed
+// columns may contain such a ghost, so it cannot be trusted.
+bool matrixIsAmbiguous(uint16_t mask) {
+  const uint16_t rowMask = (1u << MATRIX_COLS) - 1;
+  for (uint8_t a = 0; a < MATRIX_ROWS; a++) {
+    for (uint8_t b = a + 1; b < MATRIX_ROWS; b++) {
+      uint16_t shared = ((mask >> (a * MATRIX_COLS)) & rowMask) &
+                        ((mask >> (b * MATRIX_COLS)) & rowMask);
+      if (shared & (shared - 1)) return true;  // two or more bits set
+    }
+  }
+  return false;
+}
+
 // ============================================================================
 // Debouncing
 // ============================================================================
@@ -292,7 +307,13 @@ void setup() {
 void loop() {
   uint32_t now = millis();
 
+  static uint16_t lastGoodMatrix = 0;
   uint16_t matrix = scanMatrix();
+  if (!MATRIX_HAS_DIODES && matrixIsAmbiguous(matrix)) {
+    matrix = lastGoodMatrix;  // keep the last trustworthy reading
+  } else {
+    lastGoodMatrix = matrix;
+  }
   uint16_t pressedMask = 0;
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
     int edge = updateButton(keys[i], matrix & (1u << i), now);

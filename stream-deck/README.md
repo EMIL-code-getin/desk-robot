@@ -51,7 +51,6 @@ Macropad-modellen från MakerWorld, som du redan har skrivit ut.
 | 1 | OLED-displayen från SunFounder Ultimate Sensor Kit | 0,96", 128×64, SSD1306, I2C (GND, VCC, SCL, SDA) |
 | 9 | Mekaniska switchar, MX-kompatibla | De snäpper fast i locket. |
 | 1 | EC11 rotary encoder med tryckknapp, D-axel 6 mm | Ratten från MakerWorld-filen passar en D-axel. |
-| 9 | Dioder 1N4148 | Rekommenderas, se [Koppla](#2-koppla). |
 | 4 | M2-skruvar, ca 8 mm | För att skruva ihop locket och huset. |
 | – | Tunn kopplingstråd (26–28 AWG), lödpenna, lite smältlim | |
 
@@ -94,30 +93,32 @@ behöva 14. Tangenterna kopplas därför som en **matris med 3 rader och
 
 > **Detaljerad pinout med bilder:** öppna [`docs/pinout.html`](docs/pinout.html)
 > i webbläsaren. Där finns XIAO:ns alla pinnar, matrisen sedd både ovanifrån
-> och underifrån (när du löder), diodens riktning, encodern och displayen.
+> och underifrån (när du löder), encodern och displayen.
 
 ### Tangentmatrisen
 
-Varje switch har två ben. Det ena går till tangentens **kolumn**, det andra via
-en diod till tangentens **rad**:
+Varje switch har två ben. Det ena går till tangentens **kolumn**, det andra
+direkt till tangentens **rad**. Inga dioder behövs.
 
 ```
-  kolumntråd ──[ switch ]──▶|── radtråd
-                             └ svarta ringen på dioden mot raden
+  kolumntråd ──[ switch ]── radtråd
 
   Tangent:   1    2    3    4    5    6    7    8    9
   Kolumn:    D0   D8   D9   D0   D8   D9   D0   D8   D9
   Rad:       D10  D10  D10  D7   D7   D7   D6   D6   D6
 ```
 
-Praktiskt: löd en bar tråd tvärs över switcharna i varje **kolumn** (tre
-trådar uppifrån och ned). Löd sedan en diod på varje switchs andra ben och
-koppla ihop diodernas svarta ändar radvis (tre trådar från vänster till
-höger). Det är så handlödda tangentbord brukar byggas.
+Praktiskt: dra en isolerad tråd lodrätt genom varje **kolumn** och en
+vågrätt genom varje **rad**. Skala bara av där tråden ska lödas, så att rad-
+och kolumntrådarna inte rör varandra där de korsas. Det spelar ingen roll
+vilket av switchens två ben som går till kolumnen.
 
-**Utan dioder** fungerar det också, men om du håller in tre tangenter som bildar
-ett "L" kan en fjärde råka registreras. Trycker du aldrig mer än två samtidigt
-märks ingen skillnad.
+**Utan dioder** kan tre nedtryckta tangenter som bildar ett "L" (till exempel
+1, 2 och 4) få en fjärde (5) att se nedtryckt ut. Koden känner igen det
+mönstret och ignorerar den tredje tangenten tills du släpper en, så ingen fel
+tangent skickas. Två tangenter samtidigt, eller flera i samma rad eller
+kolumn, fungerar alltid. Lägger du till dioder senare (1N4148, svarta ringen
+mot raden), sätt `MATRIX_HAS_DIODES true` i `config.h`.
 
 ### Encoder och display
 
@@ -305,7 +306,8 @@ Alla tangentkoder finns i `keycodes.h`. Ladda upp koden igen efter varje ändrin
 | Displayen är svart | Kolla VCC till **3V3**, GND, och att SDA/SCL inte är förväxlade (D4 = SDA, D5 = SCL). I `pio device monitor` står `[oled] ok` eller `no display at 0x3C`. Panelen fungerar även utan display. |
 | Texten är upp och ned | Sätt `OLED_ROTATE_180 true` i `config.h`. |
 | Fel tangent reagerar / en hel rad eller kolumn är död | Kolla matristrådarna. `key N down` i loggen visar vilken tangent koden ser. Byter två tangenter plats har du förväxlat två rad- eller kolumntrådar. |
-| En "spöktangent" trycks när du håller tre samtidigt | Dioderna saknas eller sitter åt fel håll (svarta ringen ska mot raden). |
+| En tangent reagerar inte när du redan håller in två andra | Normalt utan dioder: tre tangenter i ett "L" spärras för att undvika spöktryck. Släpp en av de andra. |
+| En tangent verkar alltid vara nedtryckt | En rad- och en kolumntråd rör varandra där de korsas. |
 | Ratten går åt fel håll | Sätt `ENC_REVERSE true` i `config.h`. |
 | Ratten hoppar två steg per klick / behöver två klick per steg | Växla `ENC_HALF_STEP`. |
 | Bluetooth tappar anslutningen eller syns knappt | Antennen sitter inte i, eller ligger tryckt mot trådarna. |

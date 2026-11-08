@@ -32,10 +32,14 @@
 //   OLED SDA        D4         6
 //   OLED SCL        D5         7
 //
-// Each switch connects its column to its row. With diodes (1N4148, one per
-// switch) the black band goes towards the row wire; then any number of keys
-// can be held at once. Without diodes it still works, but holding three keys
-// that form an "L" can make a fourth one appear pressed.
+// Each switch connects its column wire directly to its row wire.
+//
+// Without diodes, holding three keys that form an "L" makes the fourth corner
+// of that rectangle look pressed too ("ghosting"). The firmware detects that
+// pattern and ignores the new key until one is released, so a phantom key is
+// never sent. If you later add diodes (1N4148, black band towards the row),
+// set MATRIX_HAS_DIODES to true and any combination of keys works.
+#define MATRIX_HAS_DIODES false
 //
 // GPIO 2, 8 and 9 are boot strapping pins. Rows are not driven during boot and
 // the columns have pull-ups, so pressed keys cannot change the boot mode.

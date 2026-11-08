@@ -186,11 +186,11 @@ svg .rule { stroke: var(--rule); }
           <tr><td class="pin">D3</td><td class="gpio">5</td><td>Encoderns tryckknapp, ena benet</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Andra benet till GND</td></tr>
           <tr><td class="pin">D4</td><td class="gpio">6</td><td>OLED SDA</td><td><i class="dot" style="background:var(--w-i2c)"></i>grön</td><td class="note">I2C data</td></tr>
           <tr><td class="pin">D5</td><td class="gpio">7</td><td>OLED SCL</td><td><i class="dot" style="background:var(--w-i2c)"></i>grön</td><td class="note">I2C klocka</td></tr>
-          <tr><td class="pin">D6</td><td class="gpio">21</td><td>Rad 3: dioderna från switch 7, 8, 9</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport TX, ofarligt</td></tr>
-          <tr><td class="pin">D7</td><td class="gpio">20</td><td>Rad 2: dioderna från switch 4, 5, 6</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport RX</td></tr>
+          <tr><td class="pin">D6</td><td class="gpio">21</td><td>Rad 3: switch 7, 8, 9</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport TX, ofarligt</td></tr>
+          <tr><td class="pin">D7</td><td class="gpio">20</td><td>Rad 2: switch 4, 5, 6</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport RX</td></tr>
           <tr><td class="pin">D8</td><td class="gpio">8</td><td>Kolumn 2: switch 2, 5, 8</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Boot-pinne, ofarlig som kolumn</td></tr>
           <tr><td class="pin">D9</td><td class="gpio">9</td><td>Kolumn 3: switch 3, 6, 9</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Samma pinne som BOOT-knappen</td></tr>
-          <tr><td class="pin">D10</td><td class="gpio">10</td><td>Rad 1: dioderna från switch 1, 2, 3</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note"></td></tr>
+          <tr><td class="pin">D10</td><td class="gpio">10</td><td>Rad 1: switch 1, 2, 3</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note"></td></tr>
           <tr><td class="pin">3V3</td><td class="gpio">–</td><td>OLED VCC</td><td><i class="dot" style="background:var(--w-pwr)"></i>röd</td><td class="note">Enda strömtråden</td></tr>
           <tr><td class="pin">GND</td><td class="gpio">–</td><td>OLED GND, encoder C (mittbenet), encoderns tryckknapp (andra benet)</td><td><i class="dot" style="background:var(--w-gnd)"></i>svart</td><td class="note">Switcharna ska <b>inte</b> till GND</td></tr>
           <tr><td class="pin">5V</td><td class="gpio">–</td><td>Ingenting</td><td><i class="dot" style="background:var(--w-nc)"></i>–</td><td class="note">5 V från USB, kan skada displayen</td></tr>
@@ -202,7 +202,7 @@ svg .rule { stroke: var(--rule); }
 
   <section>
     <h2>Tangentmatrisen</h2>
-    <p>Varje switch har två ben. Det ena går till tangentens <b>kolumn</b> (gul), det andra via en diod till tangentens <b>rad</b> (blå). Dra en gul tråd lodrätt genom varje kolumn och en blå tråd vågrätt genom varje rad.</p>
+    <p>Inga dioder behövs. Varje switch har två ben: det ena löds till tangentens <b>kolumn</b> (gul), det andra till tangentens <b>rad</b> (blå). Dra en gul tråd lodrätt genom varje kolumn och en blå tråd vågrätt genom varje rad. Trådarna får inte röra varandra där de korsas, så använd isolerad tråd och skala bara av där den ska lödas.</p>
     <div class="twocol">
       <div>
         <h3>Ovanifrån</h3>
@@ -218,9 +218,13 @@ svg .rule { stroke: var(--rule); }
 
     <div class="twocol">
       <div>
-        <h3>Dioden: svarta ringen mot raden</h3>
-        <div class="diagram mid"><svg id="diode" viewBox="0 0 400 130" role="img" aria-label="Diodens riktning"></svg></div>
-        <p class="note">Ström går från kolumnen, genom switchen och dioden, till raden. Vänd en diod fel och den tangenten gör ingenting.</p>
+        <h3>En switch underifrån</h3>
+        <div class="diagram mid"><svg id="switch" viewBox="0 0 400 200" role="img" aria-label="Switchens två ben: ett till kolumnen, ett till raden"></svg></div>
+        <p class="note">Det spelar ingen roll vilket av de två benen som går till kolumnen och vilket som går till raden. Har din switch fem ben är de tre extra bara plastpiggar.</p>
+        <div class="warn" style="border-left-color: var(--w-col)">
+          <h3>Utan dioder: håll inte in tre i ett L</h3>
+          <p class="note">Du kan hålla in två valfria tangenter, eller flera i samma rad eller kolumn. Tre tangenter som bildar ett L (till exempel 1, 2 och 4) skulle få en fjärde (5) att se nedtryckt ut. Koden känner igen det och ignorerar den tredje tangenten tills du släpper en, så ingen fel tangent skickas.</p>
+        </div>
       </div>
       <div>
         <h3>Vilken tråd går var</h3>
@@ -256,6 +260,7 @@ svg .rule { stroke: var(--rule); }
       <ul class="tight">
         <li><b>5V är inte inkopplad.</b> Displayen ska till 3V3.</li>
         <li><b>Inga switchar till GND.</b> I en matris går switcharna bara mellan kolumn och rad.</li>
+        <li><b>Rad- och kolumntrådar rör inte varandra</b> där de korsas. En kortslutning där ser ut som att en tangent alltid är nedtryckt.</li>
         <li><b>Antennen sitter i.</b> XIAO FPC Antenna A-01 på u.FL-uttaget, platt mot en innervägg.</li>
         <li><b>Rör inte BOOT-knappen</b> medan panelen är igång. Den sitter på samma pinne som kolumn 3 och ser ut som ett tryck på tangent 3, 6 eller 9.</li>
         <li><b>Testa före ihopskruvning:</b> Serial Monitor (115200) visar <code>[oled] ok</code> och <code>key N down</code> för varje tangent du trycker.</li>
@@ -403,11 +408,9 @@ svg .rule { stroke: var(--rule); }
       const colX = cx - half - 6;
       el(s, "line", { x1: colX, y1: cy - 10, x2: cx - half + 4, y2: cy - 10, stroke: W.col, "stroke-width": 2.5 });
       el(s, "circle", { cx: colX, cy: cy - 10, r: 3, fill: W.col });
-      // diode from the switch down to the row wire (triangle + bar, bar on the row side)
+      // stub from the switch straight down to the row wire (no diode)
       const dx = cx + half - 14, top = cy + half - 4, rowY = cy + half + 7;
-      el(s, "line", { x1: dx, y1: top, x2: dx, y2: rowY, stroke: "var(--ink)", "stroke-width": 1.5 });
-      el(s, "path", { d: `M ${dx - 5} ${top + 1} L ${dx + 5} ${top + 1} L ${dx} ${top + 7} Z`, fill: "var(--ink)" });
-      el(s, "line", { x1: dx - 5, y1: top + 8, x2: dx + 5, y2: top + 8, stroke: "var(--ink)", "stroke-width": 2 });
+      el(s, "line", { x1: dx, y1: top, x2: dx, y2: rowY, stroke: W.row, "stroke-width": 2.5 });
       el(s, "circle", { cx: dx, cy: rowY, r: 3, fill: W.row });
     });
   }
@@ -423,18 +426,21 @@ svg .rule { stroke: var(--rule); }
     tb.appendChild(tr);
   }
 
-  // ---------------- Diode ----------------
-  (function diode() {
-    const s = document.getElementById("diode");
-    el(s, "line", { x1: 20, y1: 60, x2: 140, y2: 60, stroke: W.col, "stroke-width": 4, "stroke-linecap": "round" });
-    el(s, "text", { x: 20, y: 40, "font-size": 12 }, "från switchen");
-    el(s, "rect", { x: 140, y: 44, width: 110, height: 32, rx: 10, class: "chip" });
-    el(s, "rect", { x: 222, y: 44, width: 12, height: 32, fill: "var(--metal)" });
-    el(s, "text", { x: 180, y: 64, "text-anchor": "middle", "font-size": 11, class: "t-onchip" }, "1N4148");
-    el(s, "line", { x1: 250, y1: 60, x2: 380, y2: 60, stroke: W.row, "stroke-width": 4, "stroke-linecap": "round" });
-    el(s, "text", { x: 380, y: 40, "text-anchor": "end", "font-size": 12 }, "till raden");
-    el(s, "text", { x: 228, y: 104, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, "ring = katod, mot raden");
-    el(s, "line", { x1: 228, y1: 80, x2: 228, y2: 90, stroke: "var(--ink)", "stroke-width": 1.5 });
+  // ---------------- One switch, seen from below ----------------
+  (function oneSwitch() {
+    const s = document.getElementById("switch");
+    const cx = 200, cy = 100, h = 62;
+    el(s, "rect", { x: cx - h, y: cy - h, width: 2 * h, height: 2 * h, rx: 8, class: "key" });
+    el(s, "circle", { cx, cy, r: 13, class: "outline" });  // centre post
+    // the two metal legs
+    const legs = [[cx - 26, cy - 30, W.col, "till kolumnen"], [cx + 18, cy - 44, W.row, "till raden"]];
+    legs.forEach(([lx, ly, color, label], i) => {
+      el(s, "circle", { cx: lx, cy: ly, r: 6, class: "pad" });
+      const tx = i === 0 ? 24 : 376;
+      el(s, "line", { x1: lx, y1: ly, x2: i === 0 ? 70 : 330, y2: ly, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
+      el(s, "text", { x: tx, y: ly - 10, "text-anchor": i === 0 ? "start" : "end", "font-size": 12, "font-weight": 700 }, label);
+    });
+    el(s, "text", { x: cx, y: cy + h + 22, "text-anchor": "middle", "font-size": 12, class: "t-muted" }, "MX-switch, benen uppåt");
   })();
 
   // ---------------- EC11 ----------------
