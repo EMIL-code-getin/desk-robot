@@ -12,9 +12,9 @@ inga drivrutiner eller program. Displayen visar vad varje knapp gör.
    +---------+---------+---------+
    | Bambu   | YouTube |  Gmail  |   1 2 3
    +---------+---------+---------+
-   | Kopiera | Klistra |  Mute   |   4 5 6
+   | Kopiera | Klistra |  Ångra  |   4 5 6
    +---------+---------+---------+
-   | Deafen  |  Ångra  |  PrtSc  |   7 8 9
+   |  PrtSc  | Deafen  |  Mute   |   7 8 9
    +---------+---------+---------+
         fram          vrid = volym, klick = ljud av
 ```
@@ -237,10 +237,10 @@ användning och tänds igen när du trycker eller vrider.
 | Tangent 3 | **Gmail** (i webbläsaren) | Nästa låt | Klipp ut |
 | Tangent 4 | **Kopiera** (Ctrl+C) | Mikrofon av/på i Teams | Spara |
 | Tangent 5 | **Klistra in** (Ctrl+V) | Kamera av/på i Teams | Sök |
-| Tangent 6 | **Mute i Discord** (F13) | Stopp | Markera allt |
-| Tangent 7 | **Fullmute i Discord** (F14) | Miniräknare | Ny flik |
-| Tangent 8 | Ångra (Ctrl+Z) | Webbläsare | Stäng flik |
-| Tangent 9 | **Print Screen** | E-post | Visa skrivbordet |
+| Tangent 6 | Ångra (Ctrl+Z) | Stopp | Markera allt |
+| Tangent 7 | **Print Screen** | Miniräknare | Ny flik |
+| Tangent 8 | **Fullmute i Discord** (F14) | Webbläsare | Stäng flik |
+| Tangent 9 | **Mute i Discord** (F13) | E-post | Visa skrivbordet |
 | Vrid höger / vänster | Volym upp / ner | Volym upp / ner | Gör om / ångra |
 | Klick på ratten | Ljud av | Play/paus | Enter |
 
@@ -268,10 +268,10 @@ Tiderna nedan (500 ms osv.) kan ändras i `config.h` (`RUN_DIALOG_MS`,
 | Tangent 3 | Gmail | `Win`+`R` → vänta 500 ms → skriver `https://mail.google.com` → `Enter` | Kör-rutan öppnas och Gmail öppnas i din standardwebbläsare |
 | Tangent 4 | Kopiera | `Ctrl`+`C` | Kopiera |
 | Tangent 5 | Klistra | `Ctrl`+`V` | Klistra in |
-| Tangent 6 | Mute | `F13` | Ingenting, tills du bundit F13 till *Toggle Mute* i Discord. Då slås mikrofonen av/på |
-| Tangent 7 | Deafen | `F14` | Ingenting, tills du bundit F14 till *Toggle Deafen* i Discord. Då slås allt ljud i Discord av/på |
-| Tangent 8 | Ångra | `Ctrl`+`Z` | Ångra |
-| Tangent 9 | PrtSc | `Print Screen` | Windows 11: skärmklippverktyget öppnas (eller hela skärmen kopieras, beroende på inställning) |
+| Tangent 6 | Ångra | `Ctrl`+`Z` | Ångra |
+| Tangent 7 | PrtSc | `Print Screen` | Windows 11: skärmklippverktyget öppnas (eller hela skärmen kopieras, beroende på inställning) |
+| Tangent 8 | Deafen | `F14` | Ingenting, tills du bundit F14 till *Toggle Deafen* i Discord. Då slås allt ljud i Discord av/på |
+| Tangent 9 | Mute | `F13` | Ingenting, tills du bundit F13 till *Toggle Mute* i Discord. Då slås mikrofonen av/på |
 | Vrid höger | Volym | Mediaknapp *Volume Up* | Systemvolymen höjs ett steg |
 | Vrid vänster | Volym | Mediaknapp *Volume Down* | Systemvolymen sänks ett steg |
 | Klick | Ljud av | Mediaknapp *Mute* | Systemljudet av/på |
@@ -336,13 +336,13 @@ fungerar de även när du sitter i Bambu Studio eller ett spel.
 1. Discord → **Användarinställningar** (kugghjulet) → **Tangentbindningar** →
    **Lägg till en tangentbindning**.
 2. Välj åtgärden för att slå av och på mikrofonen (**Toggle Mute** i engelska
-   Discord). Klicka i tangentfältet och tryck på **tangent 6** på panelen.
+   Discord). Klicka i tangentfältet och tryck på **tangent 9** på panelen.
    Där ska det stå F13.
 3. Lägg till en bindning till med åtgärden för att slå av och på allt ljud
-   (**Toggle Deafen**). Klicka i fältet och tryck på **tangent 7**. Där ska
+   (**Toggle Deafen**). Klicka i fältet och tryck på **tangent 8**. Där ska
    det stå F14.
 
-**Print Screen** (tangent 9) gör det som Print Screen-tangenten är inställd
+**Print Screen** (tangent 7) gör det som Print Screen-tangenten är inställd
 på i Windows. I Windows 11 öppnas skärmklippverktyget som standard. Vill du i
 stället kopiera hela skärmen direkt: **Inställningar → Hjälpmedel →
 Tangentbord → Använd Print Screen-knappen för att öppna skärmbild**, stäng av.

@@ -136,8 +136,8 @@ static const Layer LAYERS[] = {
     // Discord's own Ctrl+Shift+M / Ctrl+Shift+D only work while Discord has
     // focus, so keys 6 and 7 send F13 / F14, which no normal keyboard has.
     // Bind them once in Discord: User Settings -> Keybinds -> Add a Keybind ->
-    // "Toggle Mute", click the shortcut field and press key 6; again with
-    // "Toggle Deafen" and key 7. Discord keybinds work even when Discord is in
+    // "Toggle Mute", click the shortcut field and press key 9; again with
+    // "Toggle Deafen" and key 8. Discord keybinds work even when Discord is in
     // the background.
     "Apps",
     {
@@ -146,10 +146,10 @@ static const Layer LAYERS[] = {
       RUN("Gmail",      "https://mail.google.com"),  // 3: Gmail in the browser
       COMBO("Kopiera",  MOD_CTRL, KEY_C),            // 4: copy
       COMBO("Klistra",  MOD_CTRL, KEY_V),            // 5: paste
-      KEY("Mute",       KEY_F13),                    // 6: Discord Toggle Mute
-      KEY("Deafen",     KEY_F14),                    // 7: Discord Toggle Deafen
-      COMBO("Ångra",    MOD_CTRL, KEY_Z),            // 8: undo
-      KEY("PrtSc",      KEY_PRINTSCREEN),            // 9: Print Screen
+      COMBO("Ångra",    MOD_CTRL, KEY_Z),            // 6: undo
+      KEY("PrtSc",      KEY_PRINTSCREEN),            // 7: Print Screen
+      KEY("Deafen",     KEY_F14),                    // 8: Discord Toggle Deafen (full mute)
+      KEY("Mute",       KEY_F13),                    // 9: Discord Toggle Mute
     },
     MEDIA("Volym",   MEDIA_VOL_UP),    // turn right
     MEDIA("Volym",   MEDIA_VOL_DOWN),  // turn left

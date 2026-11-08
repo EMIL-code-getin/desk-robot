@@ -1,7 +1,7 @@
 # Ikon-keycaps: Discord fullmute och Print Screen
 
-Två keycaps med ikoner till stream decken: **Discord fullmute** (deafen, tangent 7)
-och **Print Screen** (tangent 9). Keycap-formen är densamma som i emoji-generatorn
+Två keycaps med ikoner till stream decken: **Discord fullmute** (deafen, tangent 8)
+och **Print Screen** (tangent 7). Keycap-formen är densamma som i emoji-generatorn
 av Benoit Perocheau, men ikonerna är ritade som geometri eftersom emoji-typsnitt
 saknar dem.
 
