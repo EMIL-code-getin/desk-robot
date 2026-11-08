@@ -232,22 +232,66 @@ Panelen har tre **lager**. **Håll in ratten i 0,6 s** för att byta lager.
 Lampan blinkar 1, 2 eller 3 gånger och visar vilket lager du är på. Valt lager
 sparas även när strömmen bryts.
 
-| | Lager 1 "F-keys" | Lager 2 "Media" | Lager 3 "Edit" |
+| | Lager 1 "Apps" | Lager 2 "Media" | Lager 3 "Edit" |
 |---|---|---|---|
-| Tangent 1 | F13 | Föregående låt | Kopiera (Ctrl+C) |
-| Tangent 2 | F14 | Play/paus | Klistra in (Ctrl+V) |
-| Tangent 3 | F15 | Nästa låt | Klipp ut (Ctrl+X) |
-| Tangent 4 | F16 | Mikrofon av/på i Teams | Spara (Ctrl+S) |
-| Tangent 5 | F17 | Kamera av/på i Teams | Sök (Ctrl+F) |
-| Tangent 6 | F18 | Skärmklipp (Win+Shift+S) | Visa skrivbordet (Win+D) |
+| Tangent 1 | **Bambu Studio** (Win+1) | Föregående låt | Kopiera (Ctrl+C) |
+| Tangent 2 | **Discord** (Win+2) | Play/paus | Klistra in (Ctrl+V) |
+| Tangent 3 | **Gmail** (Win+3) | Nästa låt | Klipp ut (Ctrl+X) |
+| Tangent 4 | **Kopiera** (Ctrl+C) | Mikrofon av/på i Teams | Spara (Ctrl+S) |
+| Tangent 5 | **Klistra in** (Ctrl+V) | Kamera av/på i Teams | Sök (Ctrl+F) |
+| Tangent 6 | **Mute i Discord** (F13) | Skärmklipp (Win+Shift+S) | Visa skrivbordet (Win+D) |
 | Vrid höger / vänster | Volym upp / ner | Volym upp / ner | Gör om / ångra |
-| Klick på ratten | Ljud av | Play/paus | Enter |
+| Klick på ratten | **Fullmute i Discord** (F14) | Play/paus | Enter |
 
-**F13–F18** finns inte på vanliga tangentbord, så de krockar aldrig med något.
-Bind dem i OBS (*Inställningar → Snabbtangenter*), Discord (*Tangentbindningar*),
-Streamer.bot, AutoHotkey eller i spelet. Tryck bara på knappen på panelen när
-programmet ber om en tangent. Tangenterna hålls nere så länge du håller in
-knappen, så push-to-talk fungerar.
+```
+        bak (USB-C)
+   +---------+---------+---------+
+   | Bambu   | Discord |  Gmail  |    ( ratt )
+   +---------+---------+---------+    vrid  = volym
+   | Kopiera | Klistra | Mute    |    klick = fullmute
+   |         |   in    | Discord |
+   +---------+---------+---------+
+        fram
+```
+
+### Ställ in datorn (en gång)
+
+Ett tangentbord kan inte starta program själv, så lager 1 använder två
+inbyggda funktioner i Windows och Discord. Inga extra program behövs.
+
+**Bambu Studio, Discord och Gmail (Win+1/2/3).** Win+siffra öppnar programmet
+som sitter på den platsen i aktivitetsfältet, räknat från vänster. Om det
+redan är öppet växlar Windows till det.
+
+1. Fäst Bambu Studio och Discord i aktivitetsfältet: sök upp programmet i
+   Start, högerklicka och välj **Fäst i Aktivitetsfältet**.
+2. Gör Gmail till en egen app:
+   - **Chrome:** öppna mail.google.com, klicka på ⋮ → **Spara och dela** →
+     **Installera sidan som app**.
+   - **Edge:** öppna mail.google.com, klicka på ⋯ → **Appar** →
+     **Installera den här webbplatsen som en app**.
+
+   Fäst sedan Gmail-ikonen i aktivitetsfältet.
+3. Dra ikonerna så att **Bambu Studio är först, Discord tvåa och Gmail trea**
+   längst till vänster. Alla fästa ikoner räknas, även Utforskaren och Edge,
+   så lossa dem eller lägg dem till höger om de tre.
+
+**Mute och fullmute i Discord (F13/F14).** Discords egna kortkommandon
+(Ctrl+Shift+M och Ctrl+Shift+D) fungerar bara när Discord-fönstret är aktivt.
+Därför används F13 och F14 som globala tangentbindningar. De fungerar även när
+du sitter i Bambu Studio eller ett spel.
+
+1. Discord → **Användarinställningar** (kugghjulet) → **Tangentbindningar** →
+   **Lägg till en tangentbindning**.
+2. Välj åtgärden för att slå av och på mikrofonen (**Toggle Mute** i engelska
+   Discord). Klicka i tangentfältet och tryck på **tangent 6** på panelen.
+   Där ska det stå F13.
+3. Lägg till en bindning till med åtgärden för att slå av och på allt ljud
+   (**Toggle Deafen**). Klicka i fältet och **klicka på ratten**. Där ska det
+   stå F14.
+
+> Klicket på ratten skickas när du släpper den, eftersom ett långt tryck
+> (0,6 s) byter lager. Klicka alltså snabbt.
 
 ### Ändra knapparna
 
@@ -278,4 +322,7 @@ Alla tangentkoder finns i `keycodes.h`. Ladda upp koden igen efter varje ändrin
 | En tangent gör ingenting | Kolla lödningen. I `pio device monitor` ska `key N down` synas. |
 | Panelen syns inte i Bluetooth-listan | Den är redan parad med en annan enhet. Rensa parkopplingar (tangent 1 + ratt vid start). |
 | Ansluten men inget händer i Windows | Ta bort enheten i Bluetooth-inställningarna och para om. Det behövs också efter att du ändrat `DEVICE_NAME`. |
+| Fel program öppnas på tangent 1–3 | Ordningen i aktivitetsfältet stämmer inte. Win+1 är ikonen längst till vänster (efter Start/Sök). |
+| Mute i Discord fungerar bara ibland | Bindningen saknas i Discord. Lägg till F13/F14 under Tangentbindningar (se ovan). |
+| Tangenterna gör plötsligt något annat | Du har bytt lager genom att hålla in ratten. Håll in den igen tills du är tillbaka på lager 1 (en blinkning). |
 | Switcharna sitter löst i locket | Plattan måste vara 1,5 mm där klämmorna tar. Kontrollera att `plate_t = 1.5`, eller skriv ut med 0,1 mm lagerhöjd. |

@@ -141,16 +141,26 @@ static const uint8_t KEY_PINS[NUM_KEYS] = {0, 1, 2, 21, 22, 23};
 
 static const Layer LAYERS[] = {
   {
-    // Layer 1: F13-F18. Nothing on a normal keyboard uses these, so bind them
-    // to whatever you like in OBS, Discord, Streamer.bot, AutoHotkey, etc.
-    "F-keys",
+    // Layer 1: apps, copy/paste and Discord.
+    //
+    // Win+1/2/3 open (or switch to) the 1st/2nd/3rd app pinned on the Windows
+    // taskbar, so pin Bambu Studio, Discord and Gmail there in that order.
+    //
+    // Discord's own Ctrl+Shift+M / Ctrl+Shift+D only work while Discord has
+    // focus. F13/F14 work everywhere once bound in Discord: Settings ->
+    // Keybinds -> "Toggle Mute" = F13, "Toggle Deafen" = F14.
+    "Apps",
     {
-      KEY(KEY_F13), KEY(KEY_F14), KEY(KEY_F15),
-      KEY(KEY_F16), KEY(KEY_F17), KEY(KEY_F18),
+      COMBO(MOD_GUI, KEY_1),    // 1: Bambu Studio (1st taskbar app)
+      COMBO(MOD_GUI, KEY_2),    // 2: Discord      (2nd taskbar app)
+      COMBO(MOD_GUI, KEY_3),    // 3: Gmail        (3rd taskbar app)
+      COMBO(MOD_CTRL, KEY_C),   // 4: copy
+      COMBO(MOD_CTRL, KEY_V),   // 5: paste
+      KEY(KEY_F13),             // 6: Discord mute (Toggle Mute)
     },
-    MEDIA(MEDIA_VOL_UP),    // turn right
-    MEDIA(MEDIA_VOL_DOWN),  // turn left
-    MEDIA(MEDIA_MUTE),      // click
+    MEDIA(MEDIA_VOL_UP),    // turn right: volume up
+    MEDIA(MEDIA_VOL_DOWN),  // turn left:  volume down
+    KEY(KEY_F14),           // click:      Discord full mute (Toggle Deafen)
   },
   {
     // Layer 2: media and calls.
