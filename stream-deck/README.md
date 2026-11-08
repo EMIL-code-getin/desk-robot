@@ -36,6 +36,7 @@ stream-deck/
 │   └── platformio.ini            om du hellre använder PlatformIO
 ├── docs/pinout.html             detaljerad pinout med bilder
 └── case/
+    ├── keycaps/                  keycaps med ikon för Discord fullmute och Print Screen
     ├── xiao_tray.scad       bricka som håller XIAO:n i chassits kortficka
     └── stl/xiao_tray.stl
 ```
