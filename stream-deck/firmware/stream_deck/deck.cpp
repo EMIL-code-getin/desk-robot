@@ -1,8 +1,10 @@
 // Stream deck firmware: 9 keys (3x3 matrix) + EC11 rotary encoder + 0.96"
 // OLED on a Seeed XIAO ESP32C3, connected to the computer as a Bluetooth
-// keyboard with media keys.
+// keyboard with media keys. stream_deck.ino calls deck::setup()/deck::loop().
 //
-// Everything you normally change (pins, keymap, name) is in include/config.h.
+// Everything you normally change (pins, keymap, name) is in config.h.
+
+#include "deck.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -234,8 +236,15 @@ void handleKnob(uint32_t now) {
 
 }  // namespace
 
+namespace deck {
+
 void setup() {
+  // The log goes over the USB-C port ("USB CDC On Boot: Enabled"). Without
+  // it, Serial would be the hardware UART on GPIO20/21, which are matrix rows
+  // here, so leave the UART alone in that case.
+#if ARDUINO_USB_CDC_ON_BOOT
   Serial.begin(115200);
+#endif
 
   for (uint8_t r = 0; r < MATRIX_ROWS; r++) pinMode(ROW_PINS[r], INPUT);
   for (uint8_t c = 0; c < MATRIX_COLS; c++) pinMode(COL_PINS[c], INPUT_PULLUP);
@@ -307,3 +316,5 @@ void loop() {
 
   delay(1);
 }
+
+}  // namespace deck

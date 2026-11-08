@@ -27,11 +27,13 @@ direkt i Windows, macOS, Linux, Android och iOS.
 
 ```
 stream-deck/
-├── firmware/                PlatformIO-projekt
-│   ├── platformio.ini
-│   ├── include/config.h     ← pinnar, namn, display och vad varje knapp gör
-│   ├── include/keycodes.h   tangentkoder (KEY_F13, MEDIA_VOL_UP ...)
-│   └── src/                 main.cpp, ble_hid.cpp, display.cpp
+├── firmware/
+│   ├── stream_deck/              Arduino-skiss (öppna stream_deck.ino)
+│   │   ├── stream_deck.ino
+│   │   ├── config.h              ← pinnar, namn, display och vad varje knapp gör
+│   │   ├── keycodes.h            tangentkoder (KEY_F13, MEDIA_VOL_UP ...)
+│   │   └── deck.cpp, ble_hid.cpp, display.cpp …
+│   └── platformio.ini            om du hellre använder PlatformIO
 └── case/
     ├── xiao_tray.scad       bricka som håller XIAO:n i chassits kortficka
     └── stl/xiao_tray.stl
@@ -44,7 +46,7 @@ Macropad-modellen från MakerWorld, som du redan har skrivit ut.
 
 | Antal | Del | Kommentar |
 |---|---|---|
-| 1 | Seeed Studio XIAO ESP32C3 **med den medföljande antennen** | C3:an har ingen inbyggd antenn. Utan antennen fungerar Bluetooth knappt. |
+| 1 | Seeed Studio XIAO ESP32C3 **med antennen XIAO FPC Antenna A-01** | C3:an har ingen inbyggd antenn. Utan antennen fungerar Bluetooth knappt. |
 | 1 | OLED-displayen från SunFounder Ultimate Sensor Kit | 0,96", 128×64, SSD1306, I2C (GND, VCC, SCL, SDA) |
 | 9 | Mekaniska switchar, MX-kompatibla | De snäpper fast i locket. |
 | 1 | EC11 rotary encoder med tryckknapp, D-axel 6 mm | Ratten från MakerWorld-filen passar en D-axel. |
@@ -134,20 +136,58 @@ märks ingen skillnad.
    centrera glaset i fönstret och limma modulen.
 4. **XIAO:n:** lägg brickan i kortfickan med den öppna änden mot USB-hålet och
    tryck ned XIAO:n i brickan med USB-C först.
-5. **Antennen:** knäpp fast antennens kontakt på XIAO:n (det lilla runda
-   u.FL-uttaget). Klistra den platta antennen på insidan av en sidovägg, så
-   långt från trådarna som möjligt.
+5. **Antennen (FPC Antenna A-01):** tryck fast den lilla runda kontakten på
+   XIAO:ns u.FL-uttag tills det klickar. Dra av skyddspappret och klistra den
+   platta antennen plant på insidan av en sidovägg, så långt från trådarna som
+   möjligt. Böj inte kabeln skarpt vid kontakten.
 6. **Löd** enligt tabellen ovan.
 7. **Ladda upp koden och testa** (steg 3) innan du skruvar ihop.
 8. Skruva ihop locket och huset med de fyra M2-skruvarna och sätt på
    keycaps och ratt.
 
-## 3. Ladda upp koden
+## 3. Ladda upp koden (Arduino IDE)
 
-Koden är ett [PlatformIO](https://platformio.org/)-projekt. Enklast är VS Code
-med tillägget *PlatformIO IDE*. Där väljer du *Open Folder* på
-`stream-deck/firmware`, sätter i XIAO:n med USB-C och klickar på pilen
-(*Upload*). Från terminalen:
+### Förbered Arduino IDE (en gång)
+
+1. Installera [Arduino IDE 2](https://www.arduino.cc/en/software).
+2. **Kortpaketet för ESP32:** öppna **File → Preferences** och klistra in den
+   här adressen i *Additional boards manager URLs*:
+
+   ```
+   https://espressif.github.io/arduino-esp32/package_esp32_index.json
+   ```
+
+   Öppna sedan **Tools → Board → Boards Manager**, sök på `esp32` och
+   installera **esp32 by Espressif Systems**, version **3.x**.
+3. **Biblioteken:** öppna **Tools → Manage Libraries** och installera:
+   - **NimBLE-Arduino** av h2zero, version **2.x** (Bluetooth)
+   - **U8g2** av oliver (displayen)
+
+### Ladda upp
+
+1. Öppna `firmware/stream_deck/stream_deck.ino`. Alla filer i mappen öppnas
+   som flikar. Det du vill ändra finns i fliken **config.h**.
+2. Sätt i XIAO:n med USB-C.
+3. Välj under **Tools**:
+   - **Board:** *esp32 → XIAO_ESP32C3*
+   - **Port:** den COM-port som dyker upp när du sätter i XIAO:n
+   - **USB CDC On Boot:** *Enabled*
+4. Klicka på pilen (**Upload**). Första gången tar kompileringen någon minut.
+5. Öppna **Tools → Serial Monitor** (115200 baud) för att se loggen: knapptryck,
+   anslutning, lager och `[oled] ok` om displayen hittas.
+
+> Om uppladdningen inte startar, eller porten inte syns: håll in **BOOT** på
+> XIAO:n, tryck på **RESET**, släpp BOOT och försök igen.
+
+> **USB CDC On Boot** måste vara *Enabled*. Annars går loggen till pinnarna
+> D6/D7, som här används av tangentmatrisen. Panelen fungerar ändå, men
+> Serial Monitor blir tom.
+
+<details>
+<summary>PlatformIO i stället för Arduino IDE</summary>
+
+`firmware/platformio.ini` bygger samma skissmapp. Öppna mappen `firmware` i
+VS Code med PlatformIO och klicka på *Upload*, eller kör:
 
 ```bash
 cd stream-deck/firmware
@@ -156,28 +196,6 @@ cd stream-deck/firmware
 ```bash
 pio run -t upload
 ```
-
-Första bygget tar några minuter, eftersom ESP32-verktygen, NimBLE (Bluetooth)
-och U8g2 (displayen) laddas ner. Vill du följa loggen (knapptryck, anslutning,
-lager och om displayen hittas):
-
-```bash
-pio device monitor
-```
-
-> Om uppladdningen inte startar: håll in **BOOT** på XIAO:n, tryck på **RESET**,
-> släpp BOOT och försök igen.
-
-<details>
-<summary>Arduino IDE i stället för PlatformIO</summary>
-
-1. Installera kortpaketet *esp32* av Espressif, **version 3.x**, och biblioteken
-   *NimBLE-Arduino* av h2zero (**version 2.x**) och *U8g2* av olikraus.
-2. Skapa en skiss som heter `stream_deck`. Kopiera innehållet i `src/main.cpp`
-   till `stream_deck.ino` och lägg övriga filer i `src/` och allt i `include/`
-   i samma mapp.
-3. Välj kortet *XIAO_ESP32C3*, sätt *USB CDC On Boot* till *Enabled* och
-   ladda upp.
 
 </details>
 
@@ -255,7 +273,7 @@ du sitter i Bambu Studio eller ett spel.
 
 ### Ändra knapparna
 
-Allt finns i `firmware/include/config.h`, i listan `LAYERS`. Den första texten
+Allt finns i fliken `config.h` (filen `firmware/stream_deck/config.h`), i listan `LAYERS`. Den första texten
 är det som visas på displayen (högst 7 tecken; å, ä och ö fungerar):
 
 ```cpp
