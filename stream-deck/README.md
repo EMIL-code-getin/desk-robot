@@ -236,8 +236,8 @@ användning och tänds igen när du trycker eller vrider.
 | Tangent 3 | **Gmail** (i webbläsaren) | Nästa låt | Klipp ut |
 | Tangent 4 | **Kopiera** (Ctrl+C) | Mikrofon av/på i Teams | Spara |
 | Tangent 5 | **Klistra in** (Ctrl+V) | Kamera av/på i Teams | Sök |
-| Tangent 6 | **Mute i Discord** (Ctrl+Shift+Alt+M) | Stopp | Markera allt |
-| Tangent 7 | **Fullmute i Discord** (Ctrl+Shift+Alt+D) | Miniräknare | Ny flik |
+| Tangent 6 | **Mute i Discord** (F13) | Stopp | Markera allt |
+| Tangent 7 | **Fullmute i Discord** (F14) | Miniräknare | Ny flik |
 | Tangent 8 | Ångra (Ctrl+Z) | Webbläsare | Stäng flik |
 | Tangent 9 | **Print Screen** | E-post | Visa skrivbordet |
 | Vrid höger / vänster | Volym upp / ner | Volym upp / ner | Gör om / ångra |
@@ -256,18 +256,18 @@ Låt bli att trycka på andra tangenter de 1–2 sekunder det tar.
 
 **Mute och fullmute i Discord** behöver en inställning i Discord. Discords egna
 kortkommandon (Ctrl+Shift+M och Ctrl+Shift+D) fungerar bara när
-Discord-fönstret är aktivt. Panelen skickar därför Ctrl+Shift+Alt+M och
-Ctrl+Shift+Alt+D, som du lägger in som tangentbindningar i Discord. Då
+Discord-fönstret är aktivt. Panelen skickar därför F13 och F14, som inte finns
+på vanliga tangentbord, och du lägger in dem som tangentbindningar i Discord. Då
 fungerar de även när du sitter i Bambu Studio eller ett spel.
 
 1. Discord → **Användarinställningar** (kugghjulet) → **Tangentbindningar** →
    **Lägg till en tangentbindning**.
 2. Välj åtgärden för att slå av och på mikrofonen (**Toggle Mute** i engelska
    Discord). Klicka i tangentfältet och tryck på **tangent 6** på panelen.
-   Där ska det stå Ctrl + Shift + Alt + M.
+   Där ska det stå F13.
 3. Lägg till en bindning till med åtgärden för att slå av och på allt ljud
    (**Toggle Deafen**). Klicka i fältet och tryck på **tangent 7**. Där ska
-   det stå Ctrl + Shift + Alt + D.
+   det stå F14.
 
 **Print Screen** (tangent 9) gör det som Print Screen-tangenten är inställd
 på i Windows. I Windows 11 öppnas skärmklippverktyget som standard. Vill du i
@@ -316,6 +316,6 @@ Alla tangentkoder finns i `keycodes.h`. Ladda upp koden igen efter varje ändrin
 | Bambu Studio startar inte, eller fel program startar | Windows-sökningen hann inte hitta programmet. Öka `SEARCH_RESULT_MS` (och vid behov `SEARCH_OPEN_MS`) i `config.h`. Testa också att själv trycka på Windows-tangenten och skriva *bambu studio*: kommer Bambu Studio överst? |
 | Konstiga tecken i stället för YouTube-/Gmail-adressen | Fel tangentbordslayout. `KEYBOARD_LAYOUT_SE` ska vara `true` om Windows använder svenskt tangentbord. |
 | Kör-rutan öppnas men adressen skrivs inte klart | Öka `RUN_DIALOG_MS` eller `TYPE_MS` i `config.h`. |
-| Mute/fullmute i Discord gör ingenting | Bindningen saknas i Discord. Lägg till den under Tangentbindningar (se ovan). |
+| Mute/fullmute i Discord gör ingenting | Bindningen saknas i Discord. Lägg till F13/F14 under Tangentbindningar (se ovan). Om Discord inte vill ta emot F13 när du trycker, byt till `COMBO("Mute", MOD_CTRL \| MOD_SHIFT \| MOD_ALT, KEY_M)` i `config.h`. |
 | En viss tangent gör ingenting | Titta på displayen när du trycker. Blir rutan **inte** inverterad når trycket aldrig fram till XIAO:n: kolla lödningen och rad- och kolumntråden för den tangenten. Blir den inverterad är kopplingen rätt, och felet ligger i vad tangenten skickar. |
 | Tangenterna gör plötsligt något annat | Du har bytt lager genom att hålla in ratten. Läs lagrets namn uppe till vänster på displayen och håll in ratten tills det står "Apps". |
