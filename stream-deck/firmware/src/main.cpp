@@ -1,5 +1,6 @@
-// Stream deck firmware: 6 keys + EC11 rotary encoder on an ESP32-C3 or C6,
-// connected to the computer as a Bluetooth keyboard with media keys.
+// Stream deck firmware: 9 keys (3x3 matrix) + EC11 rotary encoder + 0.96"
+// OLED on a Seeed XIAO ESP32C3, connected to the computer as a Bluetooth
+// keyboard with media keys.
 //
 // Everything you normally change (pins, keymap, name) is in include/config.h.
 
@@ -8,6 +9,7 @@
 
 #include "ble_hid.h"
 #include "config.h"
+#include "display.h"
 
 namespace {
 
@@ -54,10 +56,29 @@ int16_t takeEncoderSteps() {
 }
 
 // ============================================================================
-// Debounced switches
+// Key matrix
+// ============================================================================
+// Columns are inputs with pull-ups. Each row in turn is driven LOW while the
+// others float, and a pressed key pulls its column LOW. Returns bit i set for
+// key i+1 (row by row, starting at the row nearest the display).
+uint16_t scanMatrix() {
+  uint16_t mask = 0;
+  for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+    pinMode(ROW_PINS[r], OUTPUT);
+    digitalWrite(ROW_PINS[r], LOW);
+    delayMicroseconds(10);  // let the column lines settle
+    for (uint8_t c = 0; c < MATRIX_COLS; c++) {
+      if (digitalRead(COL_PINS[c]) == LOW) mask |= 1u << (r * MATRIX_COLS + c);
+    }
+    pinMode(ROW_PINS[r], INPUT);  // float again
+  }
+  return mask;
+}
+
+// ============================================================================
+// Debouncing
 // ============================================================================
 struct Button {
-  uint8_t pin;
   bool pressed = false;     // debounced state
   bool raw = false;         // last raw reading
   uint32_t rawSince = 0;    // when the raw reading last changed
@@ -67,8 +88,7 @@ Button keys[NUM_KEYS];
 Button knob;
 
 // Returns +1 on press, -1 on release, 0 if nothing changed.
-int updateButton(Button& b, uint32_t now) {
-  bool raw = digitalRead(b.pin) == LOW;
+int updateButton(Button& b, bool raw, uint32_t now) {
   if (raw != b.raw) {
     b.raw = raw;
     b.rawSince = now;
@@ -78,67 +98,6 @@ int updateButton(Button& b, uint32_t now) {
     return b.pressed ? 1 : -1;
   }
   return 0;
-}
-
-// ============================================================================
-// Status LED
-// ============================================================================
-// Blinks N times after a layer change (N = layer number), blinks slowly while
-// waiting for a computer to connect, and is otherwise off (mono LED) or dimly
-// shows the layer colour (RGB LED).
-const uint8_t LAYER_COLOURS[][3] = {
-  {0, 0, 255}, {0, 255, 0}, {255, 80, 0}, {255, 0, 255}, {0, 255, 255},
-};
-constexpr uint8_t NUM_COLOURS = sizeof(LAYER_COLOURS) / sizeof(LAYER_COLOURS[0]);
-
-uint8_t blinksLeft = 0;
-uint32_t blinkPhaseStart = 0;
-bool blinkOn = false;
-int ledState = -1;  // -1 unknown, 0 off, 1 dim, 2 bright
-
-void writeLed(int state) {
-  if (state == ledState) return;
-  ledState = state;
-#ifdef STATUS_LED_RGB_PIN
-  const uint8_t* c = LAYER_COLOURS[currentLayer % NUM_COLOURS];
-  uint8_t div = state == 2 ? 4 : 64;  // bright = 1/4, dim = 1/64 of full
-  if (state == 0) rgbLedWrite(STATUS_LED_RGB_PIN, 0, 0, 0);
-  else rgbLedWrite(STATUS_LED_RGB_PIN, c[0] / div, c[1] / div, c[2] / div);
-#elif defined(STATUS_LED_PIN)
-  digitalWrite(STATUS_LED_PIN, (state == 2) != STATUS_LED_ACTIVE_LOW);
-#endif
-#if EXTRA_LED_PIN >= 0
-  digitalWrite(EXTRA_LED_PIN, state == 2);
-#endif
-}
-
-void startBlinks(uint8_t n) {
-  blinksLeft = n;
-  blinkOn = false;
-  blinkPhaseStart = millis() - 1000;  // start the first blink immediately
-  ledState = -1;
-}
-
-void updateLed(uint32_t now) {
-  if (blinksLeft > 0) {
-    uint32_t phase = blinkOn ? 150 : 200;
-    if (now - blinkPhaseStart >= phase) {
-      blinkPhaseStart = now;
-      blinkOn = !blinkOn;
-      if (!blinkOn) blinksLeft--;
-    }
-    writeLed(blinkOn ? 2 : 0);
-    return;
-  }
-  if (!BleHid::connected()) {
-    writeLed((now % 1500) < 120 ? 2 : 0);  // short flash every 1.5 s
-    return;
-  }
-#ifdef STATUS_LED_RGB_PIN
-  writeLed(1);
-#else
-  writeLed(0);
-#endif
 }
 
 // ============================================================================
@@ -190,7 +149,7 @@ void nextLayer() {
   currentLayer = (currentLayer + 1) % NUM_LAYERS;
   prefs.putUChar("layer", currentLayer);
   Serial.printf("[deck] layer %u: %s\n", currentLayer + 1, LAYERS[currentLayer].name);
-  startBlinks(currentLayer + 1);
+  Display::layerBanner(LAYERS[currentLayer], currentLayer, NUM_LAYERS);
 }
 
 // Press and release an action once (encoder steps, knob click, text).
@@ -230,7 +189,7 @@ void tap(const Action& a) {
 
 void onKeyPressed(uint8_t i) {
   const Action& a = LAYERS[currentLayer].keys[i];
-  Serial.printf("[deck] key %u down\n", i + 1);
+  Serial.printf("[deck] key %u down (%s)\n", i + 1, a.label);
   switch (a.type) {
     case ACT_KEY:
       held[i] = &a;
@@ -259,7 +218,8 @@ uint32_t knobDownAt = 0;
 bool knobLongFired = false;
 
 void handleKnob(uint32_t now) {
-  int edge = updateButton(knob, now);
+  int edge = updateButton(knob, digitalRead(ENC_SW_PIN) == LOW, now);
+  if (edge != 0) Display::activity();
   if (edge > 0) {
     knobDownAt = now;
     knobLongFired = false;
@@ -277,26 +237,19 @@ void handleKnob(uint32_t now) {
 void setup() {
   Serial.begin(115200);
 
-  for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    keys[i].pin = KEY_PINS[i];
-    pinMode(KEY_PINS[i], INPUT_PULLUP);
-  }
-  knob.pin = ENC_SW_PIN;
+  for (uint8_t r = 0; r < MATRIX_ROWS; r++) pinMode(ROW_PINS[r], INPUT);
+  for (uint8_t c = 0; c < MATRIX_COLS; c++) pinMode(COL_PINS[c], INPUT_PULLUP);
   pinMode(ENC_SW_PIN, INPUT_PULLUP);
   pinMode(ENC_A_PIN, INPUT_PULLUP);
   pinMode(ENC_B_PIN, INPUT_PULLUP);
 
-#ifdef STATUS_LED_PIN
-  pinMode(STATUS_LED_PIN, OUTPUT);
-#endif
-#if EXTRA_LED_PIN >= 0
-  pinMode(EXTRA_LED_PIN, OUTPUT);
-#endif
-  writeLed(0);
+  Display::begin();
+  Display::message(DEVICE_NAME, "Startar...", 800);
 
   delay(20);  // let the pull-ups settle before reading the boot combo
-  bool clearBonds = CLEAR_BONDS_HOLD && digitalRead(KEY_PINS[0]) == LOW &&
-                    digitalRead(ENC_SW_PIN) == LOW;
+  uint16_t bootKeys = scanMatrix();
+  bool knobAtBoot = digitalRead(ENC_SW_PIN) == LOW;
+  bool clearBonds = CLEAR_BONDS_HOLD && (bootKeys & 1u) && knobAtBoot;
 
   prefs.begin("deck", false);
   currentLayer = prefs.getUChar("layer", 0);
@@ -306,7 +259,7 @@ void setup() {
   if (clearBonds) {
     BleHid::clearBonds();
     Serial.println("[deck] forgot all paired computers");
-    startBlinks(10);
+    Display::message("Parkopplingar", "raderade", 2500);
   }
 
   encPrev = (digitalRead(ENC_A_PIN) << 1) | digitalRead(ENC_B_PIN);
@@ -315,12 +268,12 @@ void setup() {
 
   // Don't treat buttons that are held during boot as fresh presses.
   uint32_t now = millis();
-  auto syncToPin = [now](Button& b) {
-    b.raw = b.pressed = digitalRead(b.pin) == LOW;
-    b.rawSince = now;
-  };
-  for (Button& b : keys) syncToPin(b);
-  syncToPin(knob);
+  for (uint8_t i = 0; i < NUM_KEYS; i++) {
+    keys[i].raw = keys[i].pressed = bootKeys & (1u << i);
+    keys[i].rawSince = now;
+  }
+  knob.raw = knob.pressed = knobAtBoot;
+  knob.rawSince = now;
   knobLongFired = knob.pressed;  // swallow the release of the boot combo
 
   Serial.printf("[deck] ready, layer %u: %s\n", currentLayer + 1,
@@ -330,19 +283,27 @@ void setup() {
 void loop() {
   uint32_t now = millis();
 
+  uint16_t matrix = scanMatrix();
+  uint16_t pressedMask = 0;
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    int edge = updateButton(keys[i], now);
+    int edge = updateButton(keys[i], matrix & (1u << i), now);
+    if (edge != 0) Display::activity();
     if (edge > 0) onKeyPressed(i);
     else if (edge < 0) onKeyReleased(i);
+    if (keys[i].pressed) pressedMask |= 1u << i;
   }
 
   handleKnob(now);
 
   int16_t steps = takeEncoderSteps();
+  if (steps != 0) Display::activity();
   const Layer& layer = LAYERS[currentLayer];
   while (steps > 0) { tap(layer.turnRight); steps--; }
   while (steps < 0) { tap(layer.turnLeft); steps++; }
 
-  updateLed(now);
+  Display::State state{currentLayer, NUM_LAYERS, BleHid::connected(),
+                       pressedMask, knob.pressed};
+  Display::update(LAYERS[currentLayer], state);
+
   delay(1);
 }

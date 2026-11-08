@@ -1,5 +1,10 @@
 // Everything you are likely to want to change lives in this file:
-// the Bluetooth name, the pins, and what every key does.
+// the Bluetooth name, the pins, the display and what every key does.
+//
+// Hardware: Seeed XIAO ESP32C3, 9 MX switches wired as a 3x3 matrix, an EC11
+// rotary encoder with push switch, and a 0.96" 128x64 SSD1306 I2C OLED
+// (e.g. the one in the SunFounder Ultimate Sensor Kit), built into the
+// "Macropad" case from MakerWorld.
 #pragma once
 #include "actions.h"
 
@@ -12,62 +17,37 @@
 #define MANUFACTURER "DIY"
 
 // ============================================================================
-// Pins
+// Pins (XIAO ESP32C3 has 11 GPIOs; this uses all of them)
 // ============================================================================
-// Wire every switch between its pin and GND. The encoder's middle pin (C) goes
-// to GND, A and B to the pins below, and the push switch between ENC_SW and
-// GND. No resistors or diodes: the chip's internal pull-ups are used.
+//   Function        XIAO pin   GPIO
+//   Matrix row 1    D10        10     keys 1 2 3  (row nearest the display)
+//   Matrix row 2    D7         20     keys 4 5 6
+//   Matrix row 3    D6         21     keys 7 8 9
+//   Matrix col 1    D0         2      keys 1 4 7  (left)
+//   Matrix col 2    D8         8      keys 2 5 8
+//   Matrix col 3    D9         9      keys 3 6 9  (right)
+//   Encoder A       D1         3
+//   Encoder B       D2         4
+//   Encoder push    D3         5
+//   OLED SDA        D4         6
+//   OLED SCL        D5         7
 //
-// The board is picked by the PlatformIO environment (platformio.ini). In the
-// Arduino IDE it falls back to the chip: ESP32-C3 -> XIAO ESP32C3, ESP32-C6 ->
-// XIAO ESP32C6.
-#if !defined(BOARD_XIAO_ESP32C3) && !defined(BOARD_XIAO_ESP32C6) && \
-    !defined(BOARD_ESP32C6_DEVKITC)
-  #include <sdkconfig.h>
-  #if defined(CONFIG_IDF_TARGET_ESP32C3)
-    #define BOARD_XIAO_ESP32C3
-  #else
-    #define BOARD_XIAO_ESP32C6
-  #endif
-#endif
+// Each switch connects its column to its row. With diodes (1N4148, one per
+// switch) the black band goes towards the row wire; then any number of keys
+// can be held at once. Without diodes it still works, but holding three keys
+// that form an "L" can make a fourth one appear pressed.
+//
+// GPIO 2, 8 and 9 are boot strapping pins. Rows are not driven during boot and
+// the columns have pull-ups, so pressed keys cannot change the boot mode.
+static const uint8_t ROW_PINS[MATRIX_ROWS] = {10, 20, 21};
+static const uint8_t COL_PINS[MATRIX_COLS] = {2, 8, 9};
 
-#if defined(BOARD_XIAO_ESP32C3)
-// Seeed XIAO ESP32C3. Keys on the left row of pins, encoder on the right row
-// next to GND.
-//
-//   Function   XIAO pin   GPIO
-//   Key 1..6   D0..D5     2, 3, 4, 5, 6, 7
-//   Encoder A  D8         8
-//   Encoder B  D10        10
-//   Enc. push  D7         20
-//
-// Unused on purpose: D9 (GPIO9 = BOOT button; held low at power-on the chip
-// starts in download mode) and D6 (GPIO21 = serial TX, free for an LED).
-static const uint8_t KEY_PINS[NUM_KEYS] = {2, 3, 4, 5, 6, 7};
-#define ENC_A_PIN  8
-#define ENC_B_PIN  10
-#define ENC_SW_PIN 20
+#define ENC_A_PIN  3
+#define ENC_B_PIN  4
+#define ENC_SW_PIN 5
 
-#else
-// ESP32-C6 (XIAO ESP32C6 or DevKitC-1; same GPIO numbers on both):
-//
-//   Function   GPIO   XIAO ESP32C6   DevKitC-1 header
-//   Key 1       0       D0             0
-//   Key 2       1       D1             1
-//   Key 3       2       D2             2
-//   Key 4      21       D3            21
-//   Key 5      22       D4            22
-//   Key 6      23       D5            23
-//   Encoder A  19       D8            19
-//   Encoder B  20       D9            20
-//   Enc. push  18       D10           18
-//
-// Avoid GPIO 8, 9 and 15 (boot strapping), 12/13 (USB) and 16/17 (serial).
-static const uint8_t KEY_PINS[NUM_KEYS] = {0, 1, 2, 21, 22, 23};
-#define ENC_A_PIN  19
-#define ENC_B_PIN  20
-#define ENC_SW_PIN 18
-#endif
+#define OLED_SDA_PIN 6
+#define OLED_SCL_PIN 7
 
 // If turning right lowers the volume, swap A/B here instead of re-soldering.
 #define ENC_REVERSE false
@@ -78,28 +58,12 @@ static const uint8_t KEY_PINS[NUM_KEYS] = {0, 1, 2, 21, 22, 23};
 #define ENC_HALF_STEP false
 
 // ============================================================================
-// Status LED
+// Display
 // ============================================================================
-// XIAO ESP32C3: no user LED on the board (only the charge LED), so fit the
-//               external LED below if you want to see layers and pairing.
-// XIAO ESP32C6: yellow user LED on GPIO15, lit when the pin is LOW.
-// DevKitC-1:    RGB LED on GPIO8 (driven as a single-pixel WS2812).
-//
-// EXTRA_LED_PIN: optional 3 mm LED in the case's top hole (anode to this pin
-// through a 330 ohm resistor, cathode to GND). -1 = not fitted.
-// Default on the XIAO ESP32C3 is GPIO21 (D6); driving it is harmless if no
-// LED is fitted. On the XIAO ESP32C6, D7 (GPIO17) is a good choice.
-#if defined(BOARD_ESP32C6_DEVKITC)
-  #define STATUS_LED_RGB_PIN 8
-#elif defined(BOARD_XIAO_ESP32C6)
-  #define STATUS_LED_PIN       15
-  #define STATUS_LED_ACTIVE_LOW true
-#endif
-#if defined(BOARD_XIAO_ESP32C3)
-  #define EXTRA_LED_PIN 21
-#else
-  #define EXTRA_LED_PIN -1
-#endif
+#define OLED_ROTATE_180  false  // true if the text is upside down
+#define OLED_CONTRAST    80     // 0-255; lower = dimmer and slower burn-in
+#define OLED_SLEEP_MIN   10     // turn the screen off after this many minutes
+                                // without use (0 = never); any key wakes it
 
 // ============================================================================
 // Timing
@@ -113,28 +77,32 @@ static const uint8_t KEY_PINS[NUM_KEYS] = {0, 1, 2, 21, 22, 23};
 // ============================================================================
 // Keymap
 // ============================================================================
-// Physical layout, seen from above with the USB cable at the back:
+// Layout, seen from above with the display and USB cable at the back:
 //
-//        back (USB)
+//        back (USB-C)
+//   [ OLED ]    ( knob )
 //   +----+----+----+
-//   | 1  | 2  | 3  |   ( knob )
+//   | 1  | 2  | 3  |
 //   +----+----+----+
 //   | 4  | 5  | 6  |
 //   +----+----+----+
+//   | 7  | 8  | 9  |
+//   +----+----+----+
 //        front
 //
-// Hold the knob for LAYER_HOLD_MS to step to the next layer; the LED blinks
-// once for layer 1, twice for layer 2, and so on. The current layer is saved
-// and restored after a power cycle.
+// Hold the knob for LAYER_HOLD_MS to step to the next layer. The display shows
+// the layer name and the labels of all keys. The current layer is saved and
+// restored after a power cycle.
 //
-// Actions:
-//   KEY(KEY_F13)                  a single key
-//   COMBO(MOD_CTRL, KEY_C)        key with modifiers (MOD_CTRL | MOD_SHIFT ...)
-//   MEDIA(MEDIA_VOL_UP)           media key
-//   TEXT("hello")                 types text (a-z, A-Z, 0-9, space, ".", ",",
-//                                 "\n"; works on Swedish and US layouts)
-//   NEXT_LAYER                    switch layer
-//   NONE                          does nothing
+// Actions (the first argument is the label on the display, max 7 characters;
+// å, ä and ö work):
+//   KEY("F13", KEY_F13)                   a single key
+//   COMBO("Kopiera", MOD_CTRL, KEY_C)     key with modifiers (MOD_CTRL | MOD_SHIFT ...)
+//   MEDIA("Play", MEDIA_PLAY_PAUSE)       media key
+//   TEXT("Hej", "hej\n")                  types text (a-z, A-Z, 0-9, space, ".",
+//                                         ",", "\n"; Swedish and US layouts)
+//   NEXT_LAYER("Lager")                   switch layer
+//   NONE                                  does nothing
 //
 // Keys send "key down" while held and "key up" on release, so push-to-talk
 // style bindings work.
@@ -151,39 +119,54 @@ static const Layer LAYERS[] = {
     // Keybinds -> "Toggle Mute" = F13, "Toggle Deafen" = F14.
     "Apps",
     {
-      COMBO(MOD_GUI, KEY_1),    // 1: Bambu Studio (1st taskbar app)
-      COMBO(MOD_GUI, KEY_2),    // 2: Discord      (2nd taskbar app)
-      COMBO(MOD_GUI, KEY_3),    // 3: Gmail        (3rd taskbar app)
-      COMBO(MOD_CTRL, KEY_C),   // 4: copy
-      COMBO(MOD_CTRL, KEY_V),   // 5: paste
-      KEY(KEY_F13),             // 6: Discord mute (Toggle Mute)
+      COMBO("Bambu",   MOD_GUI,  KEY_1),  // 1: Bambu Studio (1st taskbar app)
+      COMBO("Discord", MOD_GUI,  KEY_2),  // 2: Discord      (2nd taskbar app)
+      COMBO("Gmail",   MOD_GUI,  KEY_3),  // 3: Gmail        (3rd taskbar app)
+      COMBO("Kopiera", MOD_CTRL, KEY_C),  // 4: copy
+      COMBO("Klistra", MOD_CTRL, KEY_V),  // 5: paste
+      KEY("Mute",      KEY_F13),          // 6: Discord Toggle Mute
+      KEY("Deafen",    KEY_F14),          // 7: Discord Toggle Deafen (full mute)
+      COMBO("Ångra",   MOD_CTRL, KEY_Z),  // 8: undo
+      COMBO("Skärm",   MOD_GUI | MOD_SHIFT, KEY_S),  // 9: Windows screenshot snip
     },
-    MEDIA(MEDIA_VOL_UP),    // turn right: volume up
-    MEDIA(MEDIA_VOL_DOWN),  // turn left:  volume down
-    KEY(KEY_F14),           // click:      Discord full mute (Toggle Deafen)
+    MEDIA("Volym",   MEDIA_VOL_UP),    // turn right
+    MEDIA("Volym",   MEDIA_VOL_DOWN),  // turn left
+    MEDIA("Ljud av", MEDIA_MUTE),      // click
   },
   {
     // Layer 2: media and calls.
     "Media",
     {
-      MEDIA(MEDIA_PREV),             MEDIA(MEDIA_PLAY_PAUSE),     MEDIA(MEDIA_NEXT),
-      COMBO(MOD_CTRL | MOD_SHIFT, KEY_M),  // mute mic in Teams
-      COMBO(MOD_CTRL | MOD_SHIFT, KEY_O),  // camera on/off in Teams
-      COMBO(MOD_GUI | MOD_SHIFT, KEY_S),   // Windows: screenshot snip
+      MEDIA("Förra",  MEDIA_PREV),
+      MEDIA("Play",   MEDIA_PLAY_PAUSE),
+      MEDIA("Nästa",  MEDIA_NEXT),
+      COMBO("Mik",    MOD_CTRL | MOD_SHIFT, KEY_M),  // Teams: mute mic
+      COMBO("Kamera", MOD_CTRL | MOD_SHIFT, KEY_O),  // Teams: camera on/off
+      MEDIA("Stopp",  MEDIA_STOP),
+      MEDIA("Kalk",   MEDIA_CALCULATOR),
+      MEDIA("Webb",   MEDIA_WWW_HOME),
+      MEDIA("Mail",   MEDIA_MAIL),
     },
-    MEDIA(MEDIA_VOL_UP),
-    MEDIA(MEDIA_VOL_DOWN),
-    MEDIA(MEDIA_PLAY_PAUSE),
+    MEDIA("Volym", MEDIA_VOL_UP),
+    MEDIA("Volym", MEDIA_VOL_DOWN),
+    MEDIA("Play",  MEDIA_PLAY_PAUSE),
   },
   {
     // Layer 3: editing. The knob scrubs through undo/redo.
-    "Edit",
+    "Redigera",
     {
-      COMBO(MOD_CTRL, KEY_C), COMBO(MOD_CTRL, KEY_V), COMBO(MOD_CTRL, KEY_X),
-      COMBO(MOD_CTRL, KEY_S), COMBO(MOD_CTRL, KEY_F), COMBO(MOD_GUI, KEY_D),
+      COMBO("Kopiera", MOD_CTRL, KEY_C),
+      COMBO("Klistra", MOD_CTRL, KEY_V),
+      COMBO("Klipp",   MOD_CTRL, KEY_X),
+      COMBO("Spara",   MOD_CTRL, KEY_S),
+      COMBO("Sök",     MOD_CTRL, KEY_F),
+      COMBO("Allt",    MOD_CTRL, KEY_A),
+      COMBO("Ny flik", MOD_CTRL, KEY_T),
+      COMBO("Stäng",   MOD_CTRL, KEY_W),
+      COMBO("Skrivb.", MOD_GUI,  KEY_D),  // show desktop
     },
-    COMBO(MOD_CTRL, KEY_Y),  // redo
-    COMBO(MOD_CTRL, KEY_Z),  // undo
-    KEY(KEY_ENTER),
+    COMBO("Gör om", MOD_CTRL, KEY_Y),  // turn right: redo
+    COMBO("Ångra",  MOD_CTRL, KEY_Z),  // turn left: undo
+    KEY("Enter",    KEY_ENTER),
   },
 };

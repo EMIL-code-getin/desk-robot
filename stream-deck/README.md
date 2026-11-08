@@ -1,176 +1,146 @@
-# Stream deck: 6 tangenter + vridratt, XIAO ESP32-C3
+# Stream deck: 9 tangenter, vridratt och OLED-display
 
-En liten makropanel med sex mekaniska tangenter och en rotary encoder med
-tryckknapp. Den kopplar upp sig mot datorn trådlöst som ett **Bluetooth-tangentbord
-med mediaknappar** och behöver varken drivrutiner eller program på datorn.
-Chassit skrivs ut på en Bambu Lab P2S (eller vilken FDM-skrivare som helst)
-utan support.
-
-![Förhandsvisning](case/preview.png)
+En makropanel byggd i **Macropad**-chassit från MakerWorld (3×3 tangenter,
+ratt och 0,96"-display). Hjärnan är en **Seeed XIAO ESP32-C3** och displayen
+kommer från **SunFounder Ultimate Sensor Kit**. Panelen kopplar upp sig
+trådlöst som ett **Bluetooth-tangentbord med mediaknappar**, så datorn behöver
+inga drivrutiner eller program. Displayen visar vad varje knapp gör.
 
 ```
         bak (USB-C)
-   +----+----+----+
-   | 1  | 2  | 3  |   ( ratt )
-   +----+----+----+
-   | 4  | 5  | 6  |
-   +----+----+----+
-        fram
+   [ OLED ]      ( ratt )
+   +---------+---------+---------+
+   | Bambu   | Discord |  Gmail  |   1 2 3
+   +---------+---------+---------+
+   | Kopiera | Klistra |  Mute   |   4 5 6
+   +---------+---------+---------+
+   | Deafen  |  Ångra  |  Skärm  |   7 8 9
+   +---------+---------+---------+
+        fram          vrid = volym, klick = ljud av
 ```
 
-**Varför Bluetooth och inte USB?** ESP32-C3 saknar USB-enhetsstöd: USB-porten
-är bara en seriell port/JTAG för programmering och kan inte bli ett
-USB-tangentbord. Däremot har C3:an Bluetooth LE, och ett BLE-tangentbord
-fungerar direkt i Windows, macOS, Linux, Android och iOS. USB-kabeln används
-för ström och för att ladda upp koden.
+**Varför Bluetooth och inte USB?** ESP32-C3 kan inte vara ett USB-tangentbord:
+USB-porten används bara för programmering och ström. Bluetooth LE fungerar
+direkt i Windows, macOS, Linux, Android och iOS.
 
 ## Innehåll
 
 ```
 stream-deck/
-├── firmware/              PlatformIO-projekt
+├── firmware/                PlatformIO-projekt
 │   ├── platformio.ini
-│   ├── include/config.h   ← pinnar, namn och vad varje knapp gör
-│   ├── include/keycodes.h tangentkoder (KEY_F13, MEDIA_VOL_UP ...)
-│   └── src/               main.cpp, ble_hid.cpp
+│   ├── include/config.h     ← pinnar, namn, display och vad varje knapp gör
+│   ├── include/keycodes.h   tangentkoder (KEY_F13, MEDIA_VOL_UP ...)
+│   └── src/                 main.cpp, ble_hid.cpp, display.cpp
 └── case/
-    ├── stream_deck.scad   parametriskt chassi (OpenSCAD)
-    ├── preview.png
-    └── stl/               färdiga filer att skriva ut
-        ├── top.stl        överdel med switchplatta
-        ├── bottom.stl     bottenplatta med hållare för kortet
-        ├── riser.stl      lutningsfot bak (valfri)
-        └── knob.stl       ratt
+    ├── xiao_tray.scad       bricka som håller XIAO:n i chassits kortficka
+    └── stl/xiao_tray.stl
 ```
+
+Själva chassit (Housing, Top_Case, Key_Cap, Knob) finns inte här. Det är
+Macropad-modellen från MakerWorld, som du redan har skrivit ut.
 
 ## Det här behöver du
 
 | Antal | Del | Kommentar |
 |---|---|---|
-| 1 | Seeed Studio XIAO ESP32C3 | Chassit är måttsatt för XIAO-formatet. Koden fungerar också med XIAO ESP32C6 och ESP32-C6-DevKitC-1 (se `platformio.ini`). |
-| 6 | Mekaniska switchar, MX-kompatibla | t.ex. Gateron, Kailh, Cherry. Med 3 eller 5 ben spelar ingen roll. |
-| 6 | Keycaps 1u, MX-fäste | |
-| 1 | EC11 rotary encoder **med tryckknapp**, D-axel, 20 mm axellängd | Mutter och bricka brukar följa med. |
-| 2 | M3×8 skruv | fram |
-| 2 | M3×12 skruv | bak, genom lutningsfoten (utan foten: 4× M3×8) |
-| 4 | Gummifötter, max 10 mm i diameter | valfritt |
-| – | Tunn kopplingstråd (26–28 AWG), lödpenna | |
-| 1 | 3 mm lysdiod + 330 Ω motstånd | Rekommenderas. XIAO ESP32C3 har ingen egen lampa, så det här är enda sättet att se lager och Bluetooth-status. |
+| 1 | Seeed Studio XIAO ESP32C3 **med den medföljande antennen** | C3:an har ingen inbyggd antenn. Utan antennen fungerar Bluetooth knappt. |
+| 1 | OLED-displayen från SunFounder Ultimate Sensor Kit | 0,96", 128×64, SSD1306, I2C (GND, VCC, SCL, SDA) |
+| 9 | Mekaniska switchar, MX-kompatibla | De snäpper fast i locket. |
+| 1 | EC11 rotary encoder med tryckknapp, D-axel 6 mm | Ratten från MakerWorld-filen passar en D-axel. |
+| 9 | Dioder 1N4148 | Rekommenderas, se [Koppla](#2-koppla). |
+| 4 | M2-skruvar, ca 8 mm | För att skruva ihop locket och huset. |
+| – | Tunn kopplingstråd (26–28 AWG), lödpenna, lite smältlim | |
 
-## 1. Skriv ut chassit (Bambu P2S)
+## 1. Skriv ut brickan för XIAO:n
 
-Öppna STL-filerna i Bambu Studio. **Alla delar skrivs ut utan support**, i den
-orientering som filerna redan har:
+Huset har en ficka för kortet som originalet använder (DFRobot Beetle RP2350,
+25 × 20,5 mm). XIAO:n är mindre (21 × 17,8 mm). Brickan `case/stl/xiao_tray.stl`
+fyller ut fickan, trycker XIAO:n mot bakväggen och lyfter den så att USB-C-kontakten
+hamnar mitt i hålet.
 
-| Fil | Orientering | Tips |
-|---|---|---|
-| `top.stl` | upp och ner, ovansidan mot plattan | Ger en slät ovansida. |
-| `bottom.stl` | som den ligger | |
-| `riser.stl` | som den ligger | Bara om du vill att panelen lutar ca 5°. |
-| `knob.stl` | upp och ner | Prova passningen på axeln först; ändra `fit` vid behov. |
+Skriv ut den platt, som den ligger, utan support (PLA, 0,2 mm). Det tar ett par
+minuter.
 
-Inställningar som fungerar bra: PLA eller PETG, 0,2 mm lagerhöjd
-(0,12 mm för ratten), 3 väggar, 15 % infill och Textured PEI-platta.
-Allt får plats på en enda platta.
-
-**Passning:** hålen för switcharna är 14,0 mm (standard). Om switcharna sitter
-för hårt eller inte går i, ändra `sw_hole` till 14,1–14,2 och exportera igen.
-Hålet för encodern är 7,4 mm.
-
-### Ändra chassit
-
-`case/stream_deck.scad` är parametriskt: alla mått finns överst i filen. Ändra
-i OpenSCAD (gratis, openscad.org) och exportera med F6 → *Export as STL*,
-eller från kommandoraden:
-
-```bash
-openscad -D 'part="top"' -o stl/top.stl stream_deck.scad
-```
-
-Vanliga ändringar:
-
-- **Annat kort:** sätt `board_w` (bredd över USB-änden) och `board_l`. USB-hålet
-  i bakväggen följer med automatiskt (`board_x` flyttar det i sidled).
-- **Encoderns stopptapp:** EC11 har en liten tapp bredvid axeln. Bryt av den med
-  en tång (enklast), eller sätt `enc_tab = true` för ett spår i locket.
-- **Kortare/längre encoderaxel:** ändra `shaft_len` (15/20/25 mm) så att ratten
-  hamnar rätt.
+> Hamnar USB-kontakten för högt eller för lågt mot hålet? Ändra `lift` i
+> `case/xiao_tray.scad` (standard 1,0 mm) och exportera igen:
+>
+> ```bash
+> openscad -o stl/xiao_tray.stl xiao_tray.scad
+> ```
 
 ## 2. Koppla
 
-Varje switch kopplas mellan sin pinne och GND. Inga motstånd eller dioder
-behövs, eftersom chipets interna pull-up-motstånd används.
+XIAO ESP32C3 har bara 11 pinnar, men 9 tangenter, encodern och displayen skulle
+behöva 14. Tangenterna kopplas därför som en **matris med 3 rader och
+3 kolumner**. Då räcker 6 pinnar till alla nio tangenterna.
 
-| Funktion | XIAO ESP32C3 | (GPIO) |
-|---|---|---|
-| Tangent 1 | D0 | 2 |
-| Tangent 2 | D1 | 3 |
-| Tangent 3 | D2 | 4 |
-| Tangent 4 | D3 | 5 |
-| Tangent 5 | D4 | 6 |
-| Tangent 6 | D5 | 7 |
-| Encoder A | D8 | 8 |
-| Encoder B | D10 | 10 |
-| Encoder tryck | D7 | 20 |
-| Statuslampa (rekommenderas) | D6 | 21 |
-| GND | GND | – |
+| Funktion | XIAO-pinne |
+|---|---|
+| Rad 1 (tangent 1, 2, 3, närmast displayen) | D10 |
+| Rad 2 (tangent 4, 5, 6) | D7 |
+| Rad 3 (tangent 7, 8, 9) | D6 |
+| Kolumn 1 (tangent 1, 4, 7, vänster) | D0 |
+| Kolumn 2 (tangent 2, 5, 8) | D8 |
+| Kolumn 3 (tangent 3, 6, 9, höger) | D9 |
+| Encoder A / B | D1 / D2 |
+| Encoder tryck | D3 |
+| OLED SDA / SCL | D4 / D5 |
+| OLED VCC | **3V3** (inte 5V) |
+| OLED GND, encoderns mittben, encoderns tryckknapp | GND |
 
-Tangenterna sitter på pinnraden till vänster (D0–D5). Encodern sitter på den
-högra raden (D7, D8, D10), som också har GND. **D9 används inte med flit:** den
-är kortets BOOT-knapp, och om den hålls låg vid start går kortet i
-programmeringsläge.
+### Tangentmatrisen
+
+Varje switch har två ben. Det ena går till tangentens **kolumn**, det andra via
+en diod till tangentens **rad**:
 
 ```
-  XIAO D0 ────── switch 1 ──┐
-  XIAO D1 ────── switch 2 ──┤
-  XIAO D2 ────── switch 3 ──┤
-  XIAO D3 ────── switch 4 ──┤
-  XIAO D4 ────── switch 5 ──┤
-  XIAO D5 ────── switch 6 ──┤
-                            ├──── XIAO GND
-  EC11, sidan med 3 ben:    │
-     A ──── D8              │
-     C (mitten) ────────────┤
-     B ──── D10             │
-  EC11, sidan med 2 ben:    │
-     SW ─── D7              │
-     SW ────────────────────┘
+  kolumntråd ──[ switch ]──▶|── radtråd
+                             └ svarta ringen på dioden mot raden
 
-  XIAO D6 ── 330 Ω ── lysdiod (långa benet) … (korta benet) ── GND
+  Tangent:   1    2    3    4    5    6    7    8    9
+  Kolumn:    D0   D8   D9   D0   D8   D9   D0   D8   D9
+  Rad:       D10  D10  D10  D7   D7   D7   D6   D6   D6
 ```
 
-<details>
-<summary>Pinnar för ESP32-C6 (XIAO ESP32C6 / DevKitC-1)</summary>
+Praktiskt: löd en bar tråd tvärs över switcharna i varje **kolumn** (tre
+trådar uppifrån och ned). Löd sedan en diod på varje switchs andra ben och
+koppla ihop diodernas svarta ändar radvis (tre trådar från vänster till
+höger). Det är så handlödda tangentbord brukar byggas.
 
-| Funktion | XIAO ESP32C6 | GPIO / DevKitC-1 |
-|---|---|---|
-| Tangent 1–6 | D0–D5 | 0, 1, 2, 21, 22, 23 |
-| Encoder A | D8 | 19 |
-| Encoder B | D9 | 20 |
-| Encoder tryck | D10 | 18 |
-| Statuslampa (valfri) | D7 | 17 |
+**Utan dioder** fungerar det också, men om du håller in tre tangenter som bildar
+ett "L" kan en fjärde råka registreras. Trycker du aldrig mer än två samtidigt
+märks ingen skillnad.
 
-</details>
+### Encoder och display
 
-Tips: dra en enda GND-tråd i en slinga från switch till switch och vidare till
-encodern. Då blir det bara en tråd per switch till kortet.
+```
+  EC11, sidan med 3 ben:   A ── D1     C (mitten) ── GND     B ── D2
+  EC11, sidan med 2 ben:   ena ── D3   andra ── GND
 
-**Monteringsordning:**
+  OLED:   GND ── GND    VCC ── 3V3    SCL ── D5    SDA ── D4
+```
 
-1. Tryck fast de sex switcharna i locket från ovansidan. De snäpper fast.
-2. Bryt av encoderns stopptapp. Sätt encodern underifrån och dra åt muttern
-   på ovansidan.
-3. Löd trådarna på switcharna och encodern, sedan på kortet.
-4. Lägg kortet i hållaren på bottenplattan med USB-C-kontakten mot hålet
-   i bakväggen.
-5. Ladda upp koden och testa (steg 3) **innan** du skruvar ihop chassit.
-6. Skruva ihop: M3×8 fram, M3×12 bak genom lutningsfoten. Tryck på ratten
-   och keycaps.
+### Montering
 
-**Statuslampa:** XIAO ESP32C3 har ingen lampa som koden kan styra. Tryck in
-en 3 mm lysdiod i hålet bredvid ratten. Koppla det långa benet via ett 330 Ω
-motstånd till D6 och det korta benet till GND. Koden använder D6 som standard,
-så ingen ändring behövs.
+1. **Switcharna:** tryck fast de nio switcharna i locket från ovansidan.
+2. **Encodern:** bryt av den lilla stopptappen bredvid axeln med en tång. Stick
+   upp axeln genom hålet underifrån och dra åt muttern på ovansidan.
+3. **Displayen:** locket har fyra små piggar runt displayfönstret, avsedda för
+   en vanlig 0,96"-modul med hålen ca 23 × 23,5 mm isär. Trä displayen på
+   piggarna med **stiftlisten mot bakkanten** (USB-sidan). Lås den med en
+   droppe smältlim, eller smält piggtopparna försiktigt med lödpennan.
+   Om hålen i SunFounder-modulen inte passar piggarna: klipp av piggarna,
+   centrera glaset i fönstret och limma modulen.
+4. **XIAO:n:** lägg brickan i kortfickan med den öppna änden mot USB-hålet och
+   tryck ned XIAO:n i brickan med USB-C först.
+5. **Antennen:** knäpp fast antennens kontakt på XIAO:n (det lilla runda
+   u.FL-uttaget). Klistra den platta antennen på insidan av en sidovägg, så
+   långt från trådarna som möjligt.
+6. **Löd** enligt tabellen ovan.
+7. **Ladda upp koden och testa** (steg 3) innan du skruvar ihop.
+8. Skruva ihop locket och huset med de fyra M2-skruvarna och sätt på
+   keycaps och ratt.
 
 ## 3. Ladda upp koden
 
@@ -184,14 +154,12 @@ cd stream-deck/firmware
 ```
 
 ```bash
-pio run -e xiao_esp32c3 -t upload
+pio run -t upload
 ```
 
-`xiao_esp32c3` är standard, så det räcker även med `pio run -t upload`. Första
-bygget tar några minuter, eftersom ESP32-verktygen och NimBLE-biblioteket
-laddas ner. (För C6-kort finns `-e xiao_esp32c6` och `-e esp32c6_devkitc`.)
-
-Vill du följa loggen (vilka knappar som trycks, anslutning och lager):
+Första bygget tar några minuter, eftersom ESP32-verktygen, NimBLE (Bluetooth)
+och U8g2 (displayen) laddas ner. Vill du följa loggen (knapptryck, anslutning,
+lager och om displayen hittas):
 
 ```bash
 pio device monitor
@@ -203,56 +171,51 @@ pio device monitor
 <details>
 <summary>Arduino IDE i stället för PlatformIO</summary>
 
-1. Installera kortpaketet *esp32* av Espressif, **version 3.x**, och biblioteket
-   *NimBLE-Arduino* av h2zero, **version 2.x**.
+1. Installera kortpaketet *esp32* av Espressif, **version 3.x**, och biblioteken
+   *NimBLE-Arduino* av h2zero (**version 2.x**) och *U8g2* av olikraus.
 2. Skapa en skiss som heter `stream_deck`. Kopiera innehållet i `src/main.cpp`
-   till `stream_deck.ino` och lägg `ble_hid.cpp`, `ble_hid.h` och allt i
-   `include/` i samma mapp.
-3. Välj kortet *XIAO_ESP32C3* och ladda upp. Koden känner själv av att det är
-   en C3:a och väljer rätt pinnar.
+   till `stream_deck.ino` och lägg övriga filer i `src/` och allt i `include/`
+   i samma mapp.
+3. Välj kortet *XIAO_ESP32C3*, sätt *USB CDC On Boot* till *Enabled* och
+   ladda upp.
 
 </details>
 
 ## 4. Para ihop med datorn
 
-1. Ge panelen ström via USB-C, från datorn eller en mobilladdare. Om du har
-   monterat statuslampan blinkar den kort var 1,5:e sekund medan panelen
-   väntar på en anslutning.
+1. Ge panelen ström via USB-C. På displayen står **Söker BT**.
 2. På datorn: **Inställningar → Bluetooth → Lägg till enhet**. Välj
    **Stream Deck**.
-3. Klart. Nästa gång ansluter den automatiskt.
+3. Klart. I displayens hörn står nu **1/3 BT**. Nästa gång ansluter panelen
+   automatiskt.
 
 **Byta dator / glömma gamla parkopplingar:** håll in tangent 1 och ratten
-samtidigt när du ger panelen ström. Lampan blinkar tio gånger. Ta också bort
-enheten i datorns Bluetooth-lista innan du parar om.
+samtidigt när du ger panelen ström. Displayen visar *Parkopplingar raderade*.
+Ta också bort enheten i datorns Bluetooth-lista innan du parar om.
 
 ## 5. Använda den
 
-Panelen har tre **lager**. **Håll in ratten i 0,6 s** för att byta lager.
-Lampan blinkar 1, 2 eller 3 gånger och visar vilket lager du är på. Valt lager
-sparas även när strömmen bryts.
+Displayen visar lagrets namn, Bluetooth-status och namnet på alla nio
+tangenter. Tangenten du håller in visas inverterad. Längst ned står vad ratten
+gör.
 
-| | Lager 1 "Apps" | Lager 2 "Media" | Lager 3 "Edit" |
+Panelen har tre **lager**. **Håll in ratten i 0,6 s** för att byta lager. Valt
+lager sparas även när strömmen bryts. Skärmen släcks efter 10 minuter utan
+användning och tänds igen när du trycker eller vrider.
+
+| | Lager 1 "Apps" | Lager 2 "Media" | Lager 3 "Redigera" |
 |---|---|---|---|
-| Tangent 1 | **Bambu Studio** (Win+1) | Föregående låt | Kopiera (Ctrl+C) |
-| Tangent 2 | **Discord** (Win+2) | Play/paus | Klistra in (Ctrl+V) |
-| Tangent 3 | **Gmail** (Win+3) | Nästa låt | Klipp ut (Ctrl+X) |
-| Tangent 4 | **Kopiera** (Ctrl+C) | Mikrofon av/på i Teams | Spara (Ctrl+S) |
-| Tangent 5 | **Klistra in** (Ctrl+V) | Kamera av/på i Teams | Sök (Ctrl+F) |
-| Tangent 6 | **Mute i Discord** (F13) | Skärmklipp (Win+Shift+S) | Visa skrivbordet (Win+D) |
+| Tangent 1 | **Bambu Studio** (Win+1) | Föregående låt | Kopiera |
+| Tangent 2 | **Discord** (Win+2) | Play/paus | Klistra in |
+| Tangent 3 | **Gmail** (Win+3) | Nästa låt | Klipp ut |
+| Tangent 4 | **Kopiera** (Ctrl+C) | Mikrofon av/på i Teams | Spara |
+| Tangent 5 | **Klistra in** (Ctrl+V) | Kamera av/på i Teams | Sök |
+| Tangent 6 | **Mute i Discord** (F13) | Stopp | Markera allt |
+| Tangent 7 | **Fullmute i Discord** (F14) | Miniräknare | Ny flik |
+| Tangent 8 | Ångra (Ctrl+Z) | Webbläsare | Stäng flik |
+| Tangent 9 | Skärmklipp (Win+Shift+S) | E-post | Visa skrivbordet |
 | Vrid höger / vänster | Volym upp / ner | Volym upp / ner | Gör om / ångra |
-| Klick på ratten | **Fullmute i Discord** (F14) | Play/paus | Enter |
-
-```
-        bak (USB-C)
-   +---------+---------+---------+
-   | Bambu   | Discord |  Gmail  |    ( ratt )
-   +---------+---------+---------+    vrid  = volym
-   | Kopiera | Klistra | Mute    |    klick = fullmute
-   |         |   in    | Discord |
-   +---------+---------+---------+
-        fram
-```
+| Klick på ratten | Ljud av | Play/paus | Enter |
 
 ### Ställ in datorn (en gång)
 
@@ -287,23 +250,21 @@ du sitter i Bambu Studio eller ett spel.
    Discord). Klicka i tangentfältet och tryck på **tangent 6** på panelen.
    Där ska det stå F13.
 3. Lägg till en bindning till med åtgärden för att slå av och på allt ljud
-   (**Toggle Deafen**). Klicka i fältet och **klicka på ratten**. Där ska det
-   stå F14.
-
-> Klicket på ratten skickas när du släpper den, eftersom ett långt tryck
-> (0,6 s) byter lager. Klicka alltså snabbt.
+   (**Toggle Deafen**). Klicka i fältet och tryck på **tangent 7**. Där ska
+   det stå F14.
 
 ### Ändra knapparna
 
-Allt finns i `firmware/include/config.h`, i listan `LAYERS`. Exempel:
+Allt finns i `firmware/include/config.h`, i listan `LAYERS`. Den första texten
+är det som visas på displayen (högst 7 tecken; å, ä och ö fungerar):
 
 ```cpp
-KEY(KEY_F13)                       // en tangent
-COMBO(MOD_CTRL | MOD_SHIFT, KEY_M) // tangentkombination
-MEDIA(MEDIA_PLAY_PAUSE)            // mediaknapp
-TEXT("hej\n")                      // skriver text (a–z, A–Z, 0–9, mellanslag, . , och Enter)
-NEXT_LAYER                         // byt lager
-NONE                               // gör ingenting
+KEY("F13", KEY_F13)                        // en tangent
+COMBO("Kopiera", MOD_CTRL, KEY_C)          // tangentkombination
+MEDIA("Play", MEDIA_PLAY_PAUSE)            // mediaknapp
+TEXT("Hej", "hej\n")                       // skriver text (a–z, A–Z, 0–9, mellanslag, . , och Enter)
+NEXT_LAYER("Lager")                        // byt lager
+NONE                                       // gör ingenting
 ```
 
 Du kan lägga till fler lager genom att kopiera ett block i `LAYERS`.
@@ -312,17 +273,21 @@ Alla tangentkoder finns i `keycodes.h`. Ladda upp koden igen efter varje ändrin
 > Tangentkoder är fysiska positioner: datorns tangentbordslayout avgör vilket
 > tecken som kommer ut. Därför klarar `TEXT()` bara tecken som ligger på samma
 > plats i svensk och amerikansk layout (inga å, ä, ö eller specialtecken).
+> Displaytexterna har inte den begränsningen.
 
 ## Felsökning
 
 | Problem | Lösning |
 |---|---|
+| Displayen är svart | Kolla VCC till **3V3**, GND, och att SDA/SCL inte är förväxlade (D4 = SDA, D5 = SCL). I `pio device monitor` står `[oled] ok` eller `no display at 0x3C`. Panelen fungerar även utan display. |
+| Texten är upp och ned | Sätt `OLED_ROTATE_180 true` i `config.h`. |
+| Fel tangent reagerar / en hel rad eller kolumn är död | Kolla matristrådarna. `key N down` i loggen visar vilken tangent koden ser. Byter två tangenter plats har du förväxlat två rad- eller kolumntrådar. |
+| En "spöktangent" trycks när du håller tre samtidigt | Dioderna saknas eller sitter åt fel håll (svarta ringen ska mot raden). |
 | Ratten går åt fel håll | Sätt `ENC_REVERSE true` i `config.h`. |
 | Ratten hoppar två steg per klick / behöver två klick per steg | Växla `ENC_HALF_STEP`. |
-| En tangent gör ingenting | Kolla lödningen. I `pio device monitor` ska `key N down` synas. |
+| Bluetooth tappar anslutningen eller syns knappt | Antennen sitter inte i, eller ligger tryckt mot trådarna. |
 | Panelen syns inte i Bluetooth-listan | Den är redan parad med en annan enhet. Rensa parkopplingar (tangent 1 + ratt vid start). |
 | Ansluten men inget händer i Windows | Ta bort enheten i Bluetooth-inställningarna och para om. Det behövs också efter att du ändrat `DEVICE_NAME`. |
 | Fel program öppnas på tangent 1–3 | Ordningen i aktivitetsfältet stämmer inte. Win+1 är ikonen längst till vänster (efter Start/Sök). |
 | Mute i Discord fungerar bara ibland | Bindningen saknas i Discord. Lägg till F13/F14 under Tangentbindningar (se ovan). |
-| Tangenterna gör plötsligt något annat | Du har bytt lager genom att hålla in ratten. Håll in den igen tills du är tillbaka på lager 1 (en blinkning). |
-| Switcharna sitter löst i locket | Plattan måste vara 1,5 mm där klämmorna tar. Kontrollera att `plate_t = 1.5`, eller skriv ut med 0,1 mm lagerhöjd. |
+| Tangenterna gör plötsligt något annat | Du har bytt lager genom att hålla in ratten. Läs lagrets namn uppe till vänster på displayen och håll in ratten tills det står "Apps". |
