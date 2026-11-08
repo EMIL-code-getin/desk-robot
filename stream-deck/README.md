@@ -50,7 +50,7 @@ Macropad-modellen från MakerWorld, som du redan har skrivit ut.
 | 1 | Seeed Studio XIAO ESP32C3 **med antennen XIAO FPC Antenna A-01** | C3:an har ingen inbyggd antenn. Utan antennen fungerar Bluetooth knappt. |
 | 1 | OLED-displayen från SunFounder Ultimate Sensor Kit | 0,96", 128×64, SSD1306, I2C (GND, VCC, SCL, SDA) |
 | 9 | Mekaniska switchar, MX-kompatibla | De snäpper fast i locket. |
-| 1 | EC11 rotary encoder med tryckknapp, D-axel 6 mm | Ratten från MakerWorld-filen passar en D-axel. |
+| 1 | Rotary encoder-modul (KY-040-typ) med CLK, DT, SW, + och GND | Ratten från MakerWorld-filen passar encoderns 6 mm D-axel. |
 | 4 | M2-skruvar, ca 8 mm | För att skruva ihop locket och huset. |
 | – | Tunn kopplingstråd (26–28 AWG), lödpenna, lite smältlim | |
 
@@ -85,11 +85,11 @@ behöva 14. Tangenterna kopplas därför som en **matris med 3 rader och
 | Kolumn 1 (tangent 1, 4, 7, vänster) | D0 |
 | Kolumn 2 (tangent 2, 5, 8) | D8 |
 | Kolumn 3 (tangent 3, 6, 9, höger) | D9 |
-| Encoder A / B | D1 / D2 |
-| Encoder tryck | D3 |
+| Encoder CLK / DT | D1 / D2 |
+| Encoder SW | D3 |
 | OLED SDA / SCL | D4 / D5 |
-| OLED VCC | **3V3** (inte 5V) |
-| OLED GND, encoderns mittben, encoderns tryckknapp | GND |
+| OLED VCC och encoder + | **3V3** (inte 5V) |
+| OLED GND och encoder GND | GND |
 
 > **Detaljerad pinout med bilder:** öppna [`docs/pinout.html`](docs/pinout.html)
 > i webbläsaren. Där finns XIAO:ns alla pinnar, matrisen sedd både ovanifrån
@@ -123,17 +123,19 @@ mot raden), sätt `MATRIX_HAS_DIODES true` i `config.h`.
 ### Encoder och display
 
 ```
-  EC11, sidan med 3 ben:   A ── D1     C (mitten) ── GND     B ── D2
-  EC11, sidan med 2 ben:   ena ── D3   andra ── GND
-
-  OLED:   GND ── GND    VCC ── 3V3    SCL ── D5    SDA ── D4
+  Encoder-modul:   CLK ── D1    DT ── D2    SW ── D3    + ── 3V3    GND ── GND
+  OLED:            GND ── GND   VCC ── 3V3  SCL ── D5   SDA ── D4
 ```
+
+Encoderns **+ ska till 3V3**, inte 5V. Modulen har motstånd från CLK och DT
+till +, så 5V där skulle lägga 5 V på XIAO:ns pinnar.
 
 ### Montering
 
 1. **Switcharna:** tryck fast de nio switcharna i locket från ovansidan.
-2. **Encodern:** bryt av den lilla stopptappen bredvid axeln med en tång. Stick
-   upp axeln genom hålet underifrån och dra åt muttern på ovansidan.
+2. **Encodern:** stick upp axeln genom hålet underifrån och dra åt muttern på
+   ovansidan. Locket har också två skruvtappar på var sin sida om hålet
+   (25,5 mm isär); passar modulens hål kan du skruva fast den där.
 3. **Displayen:** locket har fyra små piggar runt displayfönstret, avsedda för
    en vanlig 0,96"-modul med hålen ca 23 × 23,5 mm isär. Trä displayen på
    piggarna med **stiftlisten mot bakkanten** (USB-sidan). Lås den med en

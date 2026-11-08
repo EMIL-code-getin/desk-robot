@@ -181,9 +181,9 @@ svg .rule { stroke: var(--rule); }
         <thead><tr><th>XIAO</th><th>GPIO</th><th>Kopplas till</th><th>Tråd</th><th>Att tänka på</th></tr></thead>
         <tbody>
           <tr><td class="pin">D0</td><td class="gpio">2</td><td>Kolumn 1: switch 1, 4, 7</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Boot-pinne, ofarlig som kolumn</td></tr>
-          <tr><td class="pin">D1</td><td class="gpio">3</td><td>Encoder A</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note"></td></tr>
-          <tr><td class="pin">D2</td><td class="gpio">4</td><td>Encoder B</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Byt A/B med <code>ENC_REVERSE</code> om ratten går baklänges</td></tr>
-          <tr><td class="pin">D3</td><td class="gpio">5</td><td>Encoderns tryckknapp, ena benet</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Andra benet till GND</td></tr>
+          <tr><td class="pin">D1</td><td class="gpio">3</td><td>Encoder CLK</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note"></td></tr>
+          <tr><td class="pin">D2</td><td class="gpio">4</td><td>Encoder DT</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Går ratten baklänges: <code>ENC_REVERSE true</code></td></tr>
+          <tr><td class="pin">D3</td><td class="gpio">5</td><td>Encoder SW</td><td><i class="dot" style="background:var(--w-enc)"></i>lila</td><td class="note">Tryck på ratten</td></tr>
           <tr><td class="pin">D4</td><td class="gpio">6</td><td>OLED SDA</td><td><i class="dot" style="background:var(--w-i2c)"></i>grön</td><td class="note">I2C data</td></tr>
           <tr><td class="pin">D5</td><td class="gpio">7</td><td>OLED SCL</td><td><i class="dot" style="background:var(--w-i2c)"></i>grön</td><td class="note">I2C klocka</td></tr>
           <tr><td class="pin">D6</td><td class="gpio">21</td><td>Rad 3: switch 7, 8, 9</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note">Serieport TX, ofarligt</td></tr>
@@ -191,13 +191,13 @@ svg .rule { stroke: var(--rule); }
           <tr><td class="pin">D8</td><td class="gpio">8</td><td>Kolumn 2: switch 2, 5, 8</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Boot-pinne, ofarlig som kolumn</td></tr>
           <tr><td class="pin">D9</td><td class="gpio">9</td><td>Kolumn 3: switch 3, 6, 9</td><td><i class="dot" style="background:var(--w-col)"></i>gul</td><td class="note">Samma pinne som BOOT-knappen</td></tr>
           <tr><td class="pin">D10</td><td class="gpio">10</td><td>Rad 1: switch 1, 2, 3</td><td><i class="dot" style="background:var(--w-row)"></i>blå</td><td class="note"></td></tr>
-          <tr><td class="pin">3V3</td><td class="gpio">–</td><td>OLED VCC</td><td><i class="dot" style="background:var(--w-pwr)"></i>röd</td><td class="note">Enda strömtråden</td></tr>
-          <tr><td class="pin">GND</td><td class="gpio">–</td><td>OLED GND, encoder C (mittbenet), encoderns tryckknapp (andra benet)</td><td><i class="dot" style="background:var(--w-gnd)"></i>svart</td><td class="note">Switcharna ska <b>inte</b> till GND</td></tr>
+          <tr><td class="pin">3V3</td><td class="gpio">–</td><td>OLED VCC och encoder +</td><td><i class="dot" style="background:var(--w-pwr)"></i>röd</td><td class="note">Båda modulerna på 3,3 V</td></tr>
+          <tr><td class="pin">GND</td><td class="gpio">–</td><td>OLED GND och encoder GND</td><td><i class="dot" style="background:var(--w-gnd)"></i>svart</td><td class="note">Switcharna ska <b>inte</b> till GND</td></tr>
           <tr><td class="pin">5V</td><td class="gpio">–</td><td>Ingenting</td><td><i class="dot" style="background:var(--w-nc)"></i>–</td><td class="note">5 V från USB, kan skada displayen</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Totalt 15 trådar till XIAO:n: 3 rader, 3 kolumner, 3 encoder, 2 OLED-data, 3V3 och GND. GND-tråden delas: dra den till encodern och vidare till displayen.</p>
+    <p class="note">Till XIAO:n går 15 trådar: 3 rader, 3 kolumner, 3 encoder (CLK, DT, SW), 2 OLED-data, 3V3 och GND. 3V3 och GND delas mellan encodern och displayen: dra en tråd från XIAO:n till encodern och vidare till displayen, eller löd två trådar på samma pinne.</p>
   </section>
 
   <section>
@@ -242,9 +242,10 @@ svg .rule { stroke: var(--rule); }
     <h2>Encoder och display</h2>
     <div class="twocol">
       <div>
-        <h3>EC11 rotary encoder</h3>
-        <div class="diagram mid"><svg id="ec11" viewBox="0 0 400 300" role="img" aria-label="EC11 encoder pinout"></svg></div>
-        <p class="note">Sedd ovanifrån med axeln mot dig och 3-bens-sidan nedåt. Mittbenet C går alltid till GND. Spelar ingen roll vilket ytterben som blir A eller B; går ratten baklänges, sätt <code>ENC_REVERSE true</code>.</p>
+        <h3>Encoder-modul (CLK, DT, SW, +, GND)</h3>
+        <div class="diagram mid"><svg id="ec11" viewBox="0 0 400 300" role="img" aria-label="Encoder-modulens pinnar: CLK, DT, SW, + och GND"></svg></div>
+        <p class="note"><b>+ ska till 3V3, inte 5V.</b> Modulen har motstånd från CLK och DT till +, så 5V där skulle lägga 5 V på XIAO:ns pinnar. Går ratten baklänges, sätt <code>ENC_REVERSE true</code> i <code>config.h</code> i stället för att löda om.</p>
+        <p class="note">Montering: locket har två skruvtappar på var sin sida om encoderhålet (25,5 mm isär). Passar modulens hål kan du skruva fast den där, annars räcker muttern på encoderns gänga.</p>
       </div>
       <div>
         <h3>OLED 0,96" (SunFounder)</h3>
@@ -258,7 +259,7 @@ svg .rule { stroke: var(--rule); }
     <h2>Innan du sätter i USB-kabeln</h2>
     <div class="warn">
       <ul class="tight">
-        <li><b>5V är inte inkopplad.</b> Displayen ska till 3V3.</li>
+        <li><b>5V är inte inkopplad.</b> Displayen och encoderns + ska till 3V3.</li>
         <li><b>Inga switchar till GND.</b> I en matris går switcharna bara mellan kolumn och rad.</li>
         <li><b>Rad- och kolumntrådar rör inte varandra</b> där de korsas. En kortslutning där ser ut som att en tangent alltid är nedtryckt.</li>
         <li><b>Antennen sitter i.</b> XIAO FPC Antenna A-01 på u.FL-uttaget, platt mot en innervägg.</li>
@@ -290,17 +291,17 @@ svg .rule { stroke: var(--rule); }
     const bx = 361, by = 52, bw = 178, bh = 236;
     const left = [
       ["D0", "GPIO2", "Kolumn 1 · switch 1 4 7", "col"],
-      ["D1", "GPIO3", "Encoder A", "enc"],
-      ["D2", "GPIO4", "Encoder B", "enc"],
-      ["D3", "GPIO5", "Encoder tryck", "enc"],
+      ["D1", "GPIO3", "Encoder CLK", "enc"],
+      ["D2", "GPIO4", "Encoder DT", "enc"],
+      ["D3", "GPIO5", "Encoder SW", "enc"],
       ["D4", "GPIO6", "OLED SDA", "i2c"],
       ["D5", "GPIO7", "OLED SCL", "i2c"],
       ["D6", "GPIO21", "Rad 3 · switch 7 8 9", "row"],
     ];
     const right = [
       ["5V", "", "Används inte", "nc"],
-      ["GND", "", "GND: OLED, encoder C + SW", "gnd"],
-      ["3V3", "", "OLED VCC", "pwr"],
+      ["GND", "", "GND: OLED + encoder", "gnd"],
+      ["3V3", "", "3V3: OLED VCC + encoder +", "pwr"],
       ["D10", "GPIO10", "Rad 1 · switch 1 2 3", "row"],
       ["D9", "GPIO9", "Kolumn 3 · switch 3 6 9", "col"],
       ["D8", "GPIO8", "Kolumn 2 · switch 2 5 8", "col"],
@@ -443,28 +444,25 @@ svg .rule { stroke: var(--rule); }
     el(s, "text", { x: cx, y: cy + h + 22, "text-anchor": "middle", "font-size": 12, class: "t-muted" }, "MX-switch, benen uppåt");
   })();
 
-  // ---------------- EC11 ----------------
-  (function ec11() {
+  // ---------------- Encoder module (CLK, DT, SW, +, GND) ----------------
+  (function encModule() {
     const s = document.getElementById("ec11");
-    const cx = 200, cy = 140;
-    el(s, "rect", { x: cx - 60, y: cy - 60, width: 120, height: 120, rx: 6, class: "metal" });
-    el(s, "circle", { cx, cy, r: 34, class: "chip" });
-    el(s, "circle", { cx, cy, r: 15, fill: "var(--metal)" });
-    el(s, "rect", { x: cx - 15, y: cy - 15, width: 30, height: 9, fill: "var(--chip)" }); // D-flat
-    // 2 pins on top: switch
-    [[-25, "SW", "D3", W.enc], [25, "SW", "GND", W.gnd]].forEach(([dx, n, to, color]) => {
-      const x = cx + dx;
-      el(s, "rect", { x: x - 4, y: cy - 82, width: 8, height: 22, class: "pad" });
-      el(s, "line", { x1: x, y1: cy - 82, x2: x, y2: cy - 104, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
-      el(s, "text", { x: dx < 0 ? x + 6 : x - 6, y: cy - 110, "text-anchor": dx < 0 ? "end" : "start", "font-size": 12, "font-weight": 700 }, n + " → " + to);
-    });
-    // 3 pins at the bottom: A C B
-    [[-30, "A", "D1", W.enc], [0, "C", "GND", W.gnd], [30, "B", "D2", W.enc]].forEach(([dx, n, to, color]) => {
-      const x = cx + dx;
-      el(s, "rect", { x: x - 4, y: cy + 60, width: 8, height: 22, class: "pad" });
-      el(s, "line", { x1: x, y1: cy + 82, x2: x, y2: cy + 104, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
-      el(s, "text", { x: x, y: cy + 122, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, n);
-      el(s, "text", { x: x, y: cy + 137, "text-anchor": "middle", "font-size": 11, class: "t-mono t-muted" }, to);
+    const x = 70, y = 96, w = 260, h = 180;
+    el(s, "rect", { x, y, width: w, height: h, rx: 8, class: "pcb" });
+    // encoder on the board
+    const cx = x + w / 2, cy = y + 112;
+    el(s, "rect", { x: cx - 46, y: cy - 46, width: 92, height: 92, rx: 5, class: "metal" });
+    el(s, "circle", { cx, cy, r: 26, class: "chip" });
+    el(s, "circle", { cx, cy, r: 12, fill: "var(--metal)" });
+    el(s, "rect", { x: cx - 12, y: cy - 12, width: 24, height: 7, fill: "var(--chip)" }); // D-flat
+    // 5-pin header along the top edge
+    const pins = [["CLK", "D1", W.enc], ["DT", "D2", W.enc], ["SW", "D3", W.enc], ["+", "3V3", W.pwr], ["GND", "GND", W.gnd]];
+    pins.forEach(([n, to, color], i) => {
+      const px = x + 50 + i * 40;
+      el(s, "rect", { x: px - 6, y: y + 10, width: 12, height: 12, rx: 2, class: "pad" });
+      el(s, "text", { x: px, y: y + 40, "text-anchor": "middle", "font-size": 11, class: "t-pcb", "font-weight": 600 }, n);
+      el(s, "line", { x1: px, y1: y + 10, x2: px, y2: y - 34, stroke: color, "stroke-width": 4, "stroke-linecap": "round" });
+      el(s, "text", { x: px, y: y - 42, "text-anchor": "middle", "font-size": 12, "font-weight": 700, class: "t-mono" }, to);
     });
   })();
 

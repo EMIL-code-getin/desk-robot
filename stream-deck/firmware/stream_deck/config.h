@@ -2,7 +2,7 @@
 // the Bluetooth name, the pins, the display and what every key does.
 //
 // Hardware: Seeed XIAO ESP32C3, 9 MX switches wired as a 3x3 matrix, an EC11
-// rotary encoder with push switch, and a 0.96" 128x64 SSD1306 I2C OLED
+// rotary encoder module (pins CLK, DT, SW, +, GND), and a 0.96" 128x64 SSD1306 I2C OLED
 // (e.g. the one in the SunFounder Ultimate Sensor Kit), built into the
 // "Macropad" case from MakerWorld.
 #pragma once
@@ -26,9 +26,11 @@
 //   Matrix col 1    D0         2      keys 1 4 7  (left)
 //   Matrix col 2    D8         8      keys 2 5 8
 //   Matrix col 3    D9         9      keys 3 6 9  (right)
-//   Encoder A       D1         3
-//   Encoder B       D2         4
-//   Encoder push    D3         5
+//   Encoder CLK     D1         3
+//   Encoder DT      D2         4
+//   Encoder SW      D3         5      (push)
+//   Encoder +       3V3               not 5V: the module pulls CLK/DT up to +
+//   Encoder GND     GND
 //   OLED SDA        D4         6
 //   OLED SCL        D5         7
 //
@@ -53,7 +55,7 @@ static const uint8_t COL_PINS[MATRIX_COLS] = {2, 8, 9};
 #define OLED_SDA_PIN 6
 #define OLED_SCL_PIN 7
 
-// If turning right lowers the volume, swap A/B here instead of re-soldering.
+// If turning right lowers the volume, set this instead of re-soldering.
 #define ENC_REVERSE false
 
 // Most EC11 encoders click once per full electrical cycle (20 detents and
