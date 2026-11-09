@@ -1,0 +1,6 @@
+# Sådant som aldrig ska följa med in i imagen.
+.env
+.git
+__pycache__/
+*.pyc
+.venv/
