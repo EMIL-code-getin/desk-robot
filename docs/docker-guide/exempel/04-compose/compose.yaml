@@ -1,0 +1,20 @@
+services:
+  # Tjänst 1: vår egen webbapp, byggd från Dockerfile i den här mappen.
+  webb:
+    build: .
+    ports:
+      - "8080:5000"   # din dator:containern
+    environment:
+      REDIS_HOST: databas
+    depends_on:
+      - databas
+
+  # Tjänst 2: databasen Redis, en färdig image som vi inte behöver bygga.
+  databas:
+    image: redis:8-alpine
+    volumes:
+      - besoksdata:/data   # här sparar Redis sin data
+
+# En namngiven volym. Den ligger kvar även när containrarna tas bort.
+volumes:
+  besoksdata:
